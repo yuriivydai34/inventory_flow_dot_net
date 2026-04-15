@@ -198,7 +198,7 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            MySqlConnection connection1 = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd;Charset=utf8");
+            MySqlConnection connection1 = new MySqlConnection(connectionString);
             //int quantityselected;
             string catName = "";
             string manufacturer = "";
@@ -212,7 +212,7 @@ namespace InventoryFlow
             string comment = "";
             string dtstring = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             string datetime = "";
-            
+
             connection1.Open();
             catName = Convert.ToString(new MySqlCommand(@"SELECT cat_name FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
             manufacturer = Convert.ToString(new MySqlCommand(@"SELECT manufacturer FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
@@ -228,7 +228,7 @@ namespace InventoryFlow
 
 
             connection1.Close();
-            new Outcome(cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
+            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
             //int matID, int currentQuantity, string catName, string units, string projectstorage)
 
 
@@ -283,7 +283,7 @@ namespace InventoryFlow
 
         private void filter_select(string field)
         {
-            MySqlConnection connection = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd; CharSet=utf8mb4;");
+            MySqlConnection connection = new MySqlConnection(connectionString);
             try
             {
                 connection.Open();
@@ -348,7 +348,7 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            MySqlConnection connection1 = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd;Charset=utf8");
+            MySqlConnection connection1 = new MySqlConnection(connectionString);
             //int quantityselected;
             string catName = "";
             string manufacturer = "";
@@ -467,7 +467,7 @@ namespace InventoryFlow
                 int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
 
-                MySqlConnection connection1 = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd;Charset=utf8");
+                MySqlConnection connection1 = new MySqlConnection(connectionString);
                 connection1.Open();
                 string cmdText = string.Format(@"DELETE FROM materials WHERE id = '" + cellValue + "' ");
                 new MySqlCommand(cmdText, connection1).ExecuteNonQuery();
@@ -487,7 +487,7 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            MySqlConnection connection1 = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd;Charset=utf8");
+            MySqlConnection connection1 = new MySqlConnection(connectionString);
             //int quantityselected;
             string catName = "";
             string manufacturer = "";
@@ -517,7 +517,7 @@ namespace InventoryFlow
 
 
             connection1.Close();
-            new Outcome(cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
+            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
             //int matID, int currentQuantity, string catName, string units, string projectstorage)
 
 

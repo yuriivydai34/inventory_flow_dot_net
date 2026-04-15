@@ -14,6 +14,7 @@ namespace InventoryFlow
     public partial class Outcome : Form
     {
 
+        string connectionString;
         string vManufacturer;
         string vSeller;
         string vCurrQuantity;
@@ -26,9 +27,10 @@ namespace InventoryFlow
 
 
         string mat_ID;
-        public Outcome(int matID, string catName, string manufacturer, string seller, string sn, string currentQuantity, string units, string order_number, string projectStorage, string previous_storage, string comment)
+        public Outcome(string connString, int matID, string catName, string manufacturer, string seller, string sn, string currentQuantity, string units, string order_number, string projectStorage, string previous_storage, string comment)
         {
             InitializeComponent();
+            connectionString = connString;
             button1.Enabled = false;
             mat_ID = Convert.ToString(matID);
 
@@ -54,7 +56,7 @@ namespace InventoryFlow
         
         private void button1_Click(object sender, EventArgs e)
         {
-            MySqlConnection connection = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd;");
+            MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
             int quantity_old = Convert.ToInt32(lblCurrentQuantity.Text);
             int quantity_new = Convert.ToInt32(tbCurrentQuantity.Text);
@@ -76,7 +78,7 @@ namespace InventoryFlow
             //get all data first
             try
             {
-                MySqlConnection connection1 = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd;");
+                MySqlConnection connection1 = new MySqlConnection(connectionString);
                 connection1.Open();
 
 
@@ -90,7 +92,7 @@ namespace InventoryFlow
             //outcome log query
             try
             {
-                MySqlConnection connection1 = new MySqlConnection(@"Server = localhost; Database = elitbudgrup_inv; Uid = root; Pwd = passwd;Charset=utf8");
+                MySqlConnection connection1 = new MySqlConnection(connectionString);
                 connection1.Open();
                 //need to be fixed
                 string dtstring = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
