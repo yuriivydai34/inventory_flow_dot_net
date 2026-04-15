@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
 using System.IO;
+using System.Security.Cryptography;
 namespace InventoryFlow
 {
     public partial class Login : Form
@@ -45,33 +46,59 @@ namespace InventoryFlow
                     connectionstring = lines[0];
                 }
         }
+        private string HashSHA256(string input)
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+                StringBuilder sb = new StringBuilder();
+                foreach (byte b in bytes)
+                    sb.Append(b.ToString("x2"));
+                return sb.ToString();
+            }
+        }
+
         private void btn_income_Click(object sender, EventArgs e)
         {
-
-        try
-        {
-
-            MySqlConnection connection = new MySqlConnection(connectionstring);
-            connection.Open();
-            }
-            catch(Exception ex)
+            if (string.IsNullOrWhiteSpace(tbLogin.Text) || string.IsNullOrWhiteSpace(tbPass.Text))
             {
-                //MessageBox.Show(Convert.ToString(ex), "Exception", MessageBoxButtons.OK);
-                //
+                MessageBox.Show("Введіть логін та пароль", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
             }
 
-            if (tbLogin.Text == "user" && tbPass.Text == "1234")
+            try
             {
-                new Form1("user", "Operator").ShowDialog();
-                Close();
+                string hashedPass = HashSHA256(tbPass.Text);
+                using (MySqlConnection connection = new MySqlConnection(connectionstring))
+                {
+                    connection.Open();
+                    string query = "SELECT name_full, `group` FROM users WHERE login = @login AND pass = @pass";
+                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@login", tbLogin.Text);
+                        cmd.Parameters.AddWithValue("@pass", hashedPass);
+                        using (MySqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                string nameFullVal = reader["name_full"].ToString();
+                                string groupVal = reader["group"].ToString();
+                                new Form1(nameFullVal, groupVal).ShowDialog();
+                                Close();
+                            }
+                            else
+                            {
+                                tbPass.Text = "";
+                                MessageBox.Show("Невірний логін або пароль", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                            }
+                        }
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                tbLogin.Text = "";
-                tbPass.Text = "";
-                MessageBox.Show("Невірний пароль", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show(Convert.ToString(ex), "Помилка підключення", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
         }
 
         private void button1_Click_1(object sender, EventArgs e)
