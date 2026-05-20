@@ -38,13 +38,15 @@ namespace InventoryFlow
         }
         private void getconnectionstring()
         {
+            if (File.Exists("iflow.ini"))
+            {
+                var lines = File.ReadAllLines("iflow.ini")
+                    .Select(l => l.Trim())
+                    .Where(l => l.Length > 0 && !l.StartsWith(";"))
+                    .ToArray();
 
-                if (File.Exists("iflow.ini"))
-                {
-                    // Read all lines from the file
-                    string[] lines = File.ReadAllLines("iflow.ini");
-                    connectionstring = lines[0];
-                }
+                if (lines.Length > 0) connectionstring = lines[0];
+            }
         }
         private string HashSHA256(string input)
         {
@@ -83,6 +85,7 @@ namespace InventoryFlow
                             {
                                 string nameFullVal = reader["name_full"].ToString();
                                 string groupVal = reader["group"].ToString();
+                                Hide();
                                 new Form1(nameFullVal, groupVal).ShowDialog();
                                 Close();
                             }

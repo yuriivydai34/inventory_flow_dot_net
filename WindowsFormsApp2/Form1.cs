@@ -20,6 +20,7 @@ using ZXing.Rendering;
 using System.Globalization;
 
 using System.Text.RegularExpressions;
+using System.Net.Http;
 
 
 
@@ -29,7 +30,9 @@ namespace InventoryFlow
     public partial class Form1 : Form
     {
         private PrintDocument printDocument;
+        private static readonly HttpClient httpClient = new HttpClient();
         string connectionString = "";
+        string printServerUrl = "";
         string filePath = "iflow.ini";
         int selected_id;
         public Form1(string user, string role)
@@ -58,12 +61,15 @@ namespace InventoryFlow
 
         private void getdbconnectionline()
         {
-
             if (File.Exists(filePath))
             {
-                // Read all lines from the file
-                string[] lines = File.ReadAllLines(filePath);
-                connectionString = lines[0];
+                var lines = File.ReadAllLines(filePath)
+                    .Select(l => l.Trim())
+                    .Where(l => l.Length > 0 && !l.StartsWith(";"))
+                    .ToArray();
+
+                if (lines.Length > 0) connectionString = lines[0];
+                if (lines.Length > 1) printServerUrl = lines[1];
             }
         }
 
@@ -433,25 +439,33 @@ namespace InventoryFlow
             }
         }
 
-        private void button4_Click(object sender, EventArgs e) //print_sticker
+        private async void button4_Click(object sender, EventArgs e) //print_sticker
         {
-            //get positions' inventory number
-            // Example data to encode in the barcode
-
-
-            // Create a PrintDocument and set the print event handler
-            printDocument = new PrintDocument();
-            printDocument.PrintPage += PrintDocument_PrintPage;
-
-            // Display a PrintDialog to select the printer
-            PrintDialog printDialog = new PrintDialog
+            string code = lblCodeValue.Text;
+            if (string.IsNullOrEmpty(code))
             {
-                Document = printDocument
-            };
-            if (printDialog.ShowDialog() == DialogResult.OK)
+                MessageBox.Show("Оберіть позицію у таблиці", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
             {
-                // Print the document
-                printDocument.Print();
+                string json = "{\"code\":\"" + code + "\"}";
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PostAsync(printServerUrl, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Друк відправлено: " + code, "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Помилка сервера: " + (int)response.StatusCode, "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Не вдалося підключитися до принтера:\n" + ex.Message, "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
