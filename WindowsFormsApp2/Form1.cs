@@ -33,6 +33,7 @@ namespace InventoryFlow
         private static readonly HttpClient httpClient = new HttpClient();
         string connectionString = "";
         string printServerUrl = "";
+        string photosPath = "";
         string filePath = "iflow.ini";
         int selected_id;
         public Form1(string user, string role)
@@ -70,6 +71,7 @@ namespace InventoryFlow
 
                 if (lines.Length > 0) connectionString = lines[0];
                 if (lines.Length > 1) printServerUrl = lines[1];
+                if (lines.Length > 2) photosPath = lines[2];
             }
         }
 
@@ -781,14 +783,7 @@ namespace InventoryFlow
                 }
 
                 // Створюємо шлях до папки
-                string exeDirectory = Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath); string inventoryFilesPath = Path.Combine(exeDirectory, "InventoryFiles");
-                string targetFolderPath = Path.Combine(inventoryFilesPath, folderName);
-
-                // Створюємо папку InventoryFiles, якщо вона не існує
-                if (!Directory.Exists(inventoryFilesPath))
-                {
-                    Directory.CreateDirectory(inventoryFilesPath);
-                }
+                string targetFolderPath = Path.Combine(photosPath, folderName);
 
                 // Створюємо цільову папку, якщо вона не існує
                 if (!Directory.Exists(targetFolderPath))
