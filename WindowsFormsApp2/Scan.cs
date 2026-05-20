@@ -13,7 +13,6 @@ namespace InventoryFlow
 {
     public partial class Scan : Form
     {
-        string mid;
         string connectionstring;
         public Scan(string con)
         {
@@ -101,7 +100,6 @@ namespace InventoryFlow
                     connection2.Open();
                     using (MySqlCommand command = new MySqlCommand(query2, connection2))
                     {
-                        command.Parameters.AddWithValue("@someValue", mid);
                         command.Parameters.AddWithValue("@inventorynum", tbInventoryNumber.Text);
 
                         // Execute the query and retrieve the result
@@ -149,8 +147,6 @@ namespace InventoryFlow
                 try
                 {
                     conn.Open();
-                    string query = "UPDATE your_table SET date_of_check = @currentDateTime WHERE id = @id";
-
                 }
                 catch (MySqlException ex)
                 {

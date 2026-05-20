@@ -29,12 +29,11 @@ namespace InventoryFlow
 {
     public partial class Form1 : Form
     {
-        private PrintDocument printDocument;
         private static readonly HttpClient httpClient = new HttpClient();
         string connectionString = "";
         string printServerUrl = "";
         string photosPath = "";
-        string filePath = "iflow.ini";
+        string filePath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "iflow.ini");
         int selected_id;
         public Form1(string user, string role)
         {

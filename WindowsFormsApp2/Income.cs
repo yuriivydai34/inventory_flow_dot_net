@@ -156,7 +156,6 @@ namespace InventoryFlow
 
         private void insertSingleSQL(string column, string val)
         {
-            string cmdText = @"INSERT INTO materials Value";
         }
 
 

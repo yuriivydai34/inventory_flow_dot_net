@@ -38,9 +38,10 @@ namespace InventoryFlow
         }
         private void getconnectionstring()
         {
-            if (File.Exists("iflow.ini"))
+            string iniPath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "iflow.ini");
+            if (File.Exists(iniPath))
             {
-                var lines = File.ReadAllLines("iflow.ini")
+                var lines = File.ReadAllLines(iniPath)
                     .Select(l => l.Trim())
                     .Where(l => l.Length > 0 && !l.StartsWith(";"))
                     .ToArray();
