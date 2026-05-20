@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build & Run",
+            "type": "shell",
+            "command": "& 'C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe' 'WindowsFormsApp2\\Inventory Flow.csproj' /p:Configuration=Release /nologo /v:minimal; if ($LASTEXITCODE -eq 0) { & 'WindowsFormsApp2\\bin\\Release\\Inventory Flow.exe' }",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}
