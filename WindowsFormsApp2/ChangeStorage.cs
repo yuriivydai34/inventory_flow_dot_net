@@ -143,9 +143,6 @@ namespace InventoryFlow
                         //////якщо true є серійний номер
                         //if (!string.IsNullOrEmpty(hasserial) && hasserial != "00")
 
-                        //перевіряємо, чи є серійний номер у позиції, яку переміщуємо
-                        bool hasSerial = !string.IsNullOrWhiteSpace(vsn);
-
                         ////якщо true є серійний номер
                         if (hasSerial)
                         {
