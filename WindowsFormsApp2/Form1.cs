@@ -29,6 +29,8 @@ namespace InventoryFlow
 {
     public partial class Form1 : Form
     {
+
+        private PrintDocument printDocument;
         private static readonly HttpClient httpClient = new HttpClient();
         string connectionString = "";
         string printServerUrl = "";
@@ -70,7 +72,12 @@ namespace InventoryFlow
 
                 if (lines.Length > 0) connectionString = lines[0];
                 if (lines.Length > 1) printServerUrl = lines[1];
-                if (lines.Length > 2) photosPath = lines[2];
+                if (lines.Length > 2)
+                {
+                    photosPath = lines[2];
+                    if (!Path.IsPathRooted(photosPath))
+                        photosPath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), photosPath);
+                }
             }
         }
 
@@ -442,33 +449,92 @@ namespace InventoryFlow
 
         private async void button4_Click(object sender, EventArgs e) //print_sticker
         {
-            string code = lblCodeValue.Text;
-            if (string.IsNullOrEmpty(code))
+            //string code = lblCodeValue.Text;
+            //if (string.IsNullOrEmpty(code))
+            //{
+            //    MessageBox.Show("Оберіть позицію у таблиці", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //    return;
+            //}
+
+            //try
+            //{
+            //    string json = "{\"code\":\"" + code + "\"}";
+            //    var content = new StringContent(json, Encoding.UTF8, "application/json");
+            //    var response = await httpClient.PostAsync(printServerUrl, content);
+
+            //    if (response.IsSuccessStatusCode)
+            //    {
+            //        MessageBox.Show("Друк відправлено: " + code, "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            //    }
+            //    else
+            //    {
+            //        MessageBox.Show("Помилка сервера: " + (int)response.StatusCode, "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show("Не вдалося підключитися до принтера:\n" + ex.Message, "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //}
+
+            //get positions' inventory number
+            // Example data to encode in the barcode
+
+
+            // Create a PrintDocument and set the print event handler
+            printDocument = new PrintDocument();
+            printDocument.PrintPage += PrintDocument_PrintPage;
+
+            // Display a PrintDialog to select the printer
+            PrintDialog printDialog = new PrintDialog
             {
-                MessageBox.Show("Оберіть позицію у таблиці", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                Document = printDocument
+            };
+            if (printDialog.ShowDialog() == DialogResult.OK)
+            {
+                // Print the document
+                printDocument.Print();
             }
 
-            try
-            {
-                string json = "{\"code\":\"" + code + "\"}";
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync(printServerUrl, content);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    MessageBox.Show("Друк відправлено: " + code, "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Помилка сервера: " + (int)response.StatusCode, "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Не вдалося підключитися до принтера:\n" + ex.Message, "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
+
+
+        private void PrintDocument_PrintPage(object sender, PrintPageEventArgs e)
+        {
+
+            // Example data to encode in the barcode
+            string data = lblCodeValue.Text;
+
+            // Generate the DataMatrix barcode
+            Bitmap barcodeImage = GenerateDataMatrixBarcode(data);
+
+            // Set up label dimensions (58x40 mm at 300 dpi)
+            int labelWidth = 228; // 58 mm in 300 dpi
+            int labelHeight = 157; // 40 mm in 300 dpi
+
+            // Set up barcode and text dimensions
+            int barcodeWidth = 100;
+            int barcodeHeight = 100;
+            int textHeight = 20;
+
+            // Calculate positions for centering
+            int barcodeX = (labelWidth - barcodeWidth) / 2;
+            int barcodeY = (labelHeight - (barcodeHeight + textHeight + 10)) / 2; // 10 is a small gap between the barcode and text
+            int textX = barcodeX;
+            int textY = barcodeY + barcodeHeight + 10;
+
+            // Draw the barcode centered on the label
+            e.Graphics.DrawImage(barcodeImage, new System.Drawing.Rectangle(barcodeX, barcodeY, barcodeWidth, barcodeHeight));
+
+            // Draw the text centered below the barcode
+            System.Drawing.Font font = new System.Drawing.Font("Verdana", 18);
+            SizeF textSize = e.Graphics.MeasureString(data, font);
+            int centeredTextX = (labelWidth - (int)textSize.Width) / 2;
+
+            e.Graphics.DrawString(data, font, Brushes.Black, new PointF(centeredTextX, textY));
+        }
+
+
 
         private void button5_Click(object sender, EventArgs e)
         {
@@ -593,40 +659,40 @@ namespace InventoryFlow
 
             return writer.Write(data);
         }
-        private void PrintDocument_PrintPage(object sender, PrintPageEventArgs e)
-        {
+        //private void PrintDocument_PrintPage(object sender, PrintPageEventArgs e)
+        //{
 
-            // Example data to encode in the barcode
-            string data = lblCodeValue.Text;
+        //    // Example data to encode in the barcode
+        //    string data = lblCodeValue.Text;
 
-            // Generate the DataMatrix barcode
-            Bitmap barcodeImage = GenerateDataMatrixBarcode(data);
+        //    // Generate the DataMatrix barcode
+        //    Bitmap barcodeImage = GenerateDataMatrixBarcode(data);
 
-            // Set up label dimensions (58x40 mm at 300 dpi)
-            int labelWidth = 228; // 58 mm in 300 dpi
-            int labelHeight = 157; // 40 mm in 300 dpi
+        //    // Set up label dimensions (58x40 mm at 300 dpi)
+        //    int labelWidth = 228; // 58 mm in 300 dpi
+        //    int labelHeight = 157; // 40 mm in 300 dpi
 
-            // Set up barcode and text dimensions
-            int barcodeWidth = 100;
-            int barcodeHeight = 100;
-            int textHeight = 20;
+        //    // Set up barcode and text dimensions
+        //    int barcodeWidth = 100;
+        //    int barcodeHeight = 100;
+        //    int textHeight = 20;
 
-            // Calculate positions for centering
-            int barcodeX = (labelWidth - barcodeWidth) / 2;
-            int barcodeY = (labelHeight - (barcodeHeight + textHeight + 10)) / 2; // 10 is a small gap between the barcode and text
-            int textX = barcodeX;
-            int textY = barcodeY + barcodeHeight + 10;
+        //    // Calculate positions for centering
+        //    int barcodeX = (labelWidth - barcodeWidth) / 2;
+        //    int barcodeY = (labelHeight - (barcodeHeight + textHeight + 10)) / 2; // 10 is a small gap between the barcode and text
+        //    int textX = barcodeX;
+        //    int textY = barcodeY + barcodeHeight + 10;
 
-            // Draw the barcode centered on the label
-            e.Graphics.DrawImage(barcodeImage, new System.Drawing.Rectangle(barcodeX, barcodeY, barcodeWidth, barcodeHeight));
+        //    // Draw the barcode centered on the label
+        //    e.Graphics.DrawImage(barcodeImage, new System.Drawing.Rectangle(barcodeX, barcodeY, barcodeWidth, barcodeHeight));
 
-            // Draw the text centered below the barcode
-            System.Drawing.Font font = new System.Drawing.Font("Verdana", 18);
-            SizeF textSize = e.Graphics.MeasureString(data, font);
-            int centeredTextX = (labelWidth - (int)textSize.Width) / 2;
+        //    // Draw the text centered below the barcode
+        //    System.Drawing.Font font = new System.Drawing.Font("Verdana", 18);
+        //    SizeF textSize = e.Graphics.MeasureString(data, font);
+        //    int centeredTextX = (labelWidth - (int)textSize.Width) / 2;
 
-            e.Graphics.DrawString(data, font, Brushes.Black, new PointF(centeredTextX, textY));
-        }
+        //    e.Graphics.DrawString(data, font, Brushes.Black, new PointF(centeredTextX, textY));
+        //}
         private void button2_Click_1(object sender, EventArgs e)
         {
             int selectedrowindex = dataGridView1.SelectedCells[0].RowIndex;
