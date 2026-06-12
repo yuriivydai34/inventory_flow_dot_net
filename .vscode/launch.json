@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Inventory Flow",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build & Run",
+            "program": "${workspaceFolder}/WindowsFormsApp2/bin/Release/Inventory Flow.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}/WindowsFormsApp2/bin/Release",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
+    ]
+}

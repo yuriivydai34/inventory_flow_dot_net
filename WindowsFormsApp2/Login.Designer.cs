@@ -107,6 +107,7 @@ namespace InventoryFlow
             this.Controls.Add(this.tbPass);
             this.Controls.Add(this.tbLogin);
             this.Controls.Add(this.btn_income);
+            this.AcceptButton = this.btn_income;
             this.Name = "Login";
             this.Text = "Login";
             this.ResumeLayout(false);
