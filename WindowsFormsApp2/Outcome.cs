@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,14 +7,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using MySql.Data.MySqlClient;
 
 namespace InventoryFlow
 {
     public partial class Outcome : Form
     {
 
-        string connectionString;
+        RestTableClient materialsApi;
+        RestTableClient outcomeLogApi;
         string vManufacturer;
         string vSeller;
         string vCurrQuantity;
@@ -27,10 +27,11 @@ namespace InventoryFlow
 
 
         string mat_ID;
-        public Outcome(string connString, int matID, string catName, string manufacturer, string seller, string sn, string currentQuantity, string units, string order_number, string projectStorage, string previous_storage, string comment)
+        public Outcome(string apiBaseUrl, string apiKey, int matID, string catName, string manufacturer, string seller, string sn, string currentQuantity, string units, string order_number, string projectStorage, string previous_storage, string comment)
         {
             InitializeComponent();
-            connectionString = connString;
+            materialsApi = new RestTableClient(apiBaseUrl, apiKey, "materials");
+            outcomeLogApi = new RestTableClient(apiBaseUrl, apiKey, "outcome_log");
             button1.Enabled = false;
             mat_ID = Convert.ToString(matID);
 
@@ -49,57 +50,47 @@ namespace InventoryFlow
             vComment = comment;
 
 
-            
-            
 
         }
-        
-        private void button1_Click(object sender, EventArgs e)
+
+        private async void button1_Click(object sender, EventArgs e)
         {
-            MySqlConnection connection = new MySqlConnection(connectionString);
-            connection.Open();
             int quantity_old = Convert.ToInt32(lblCurrentQuantity.Text);
             int quantity_new = Convert.ToInt32(tbCurrentQuantity.Text);
             int quantity_to_update = (quantity_old - quantity_new);
-            string sqlQuery = "UPDATE materials SET quantity = " + quantity_to_update +" WHERE id = "+ mat_ID + ";";
-            MySqlCommand cmd = new MySqlCommand(sqlQuery, connection);
-            int rowsAffected = cmd.ExecuteNonQuery();
-            connection.Close();
 
-            //MessageBox.Show(Convert.ToString(quantity_to_update) +"-" + mat_ID, "Відвантажено", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-            
-            ((Form1)Application.OpenForms["Form1"]).loadMainTable();
-
-            //insert into outcome log
-
-
-
-            //get all data first
             try
             {
-                MySqlConnection connection1 = new MySqlConnection(connectionString);
-                connection1.Open();
-
-
+                await materialsApi.UpdateAsync(Convert.ToInt32(mat_ID), new Dictionary<string, object>
+                {
+                    ["quantity"] = quantity_to_update
+                });
             }
             catch (Exception ex)
             {
                 MessageBox.Show(Convert.ToString(ex), "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
 
+            ((Form1)Application.OpenForms["Form1"]).loadMainTable();
 
-            //outcome log query
+            //outcome log
             try
             {
-                MySqlConnection connection1 = new MySqlConnection(connectionString);
-                connection1.Open();
-                //need to be fixed
                 string dtstring = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                string cmdText = string.Format(@"INSERT INTO outcome_log (cat_name, manufacturer, seller, sn, quantity, units, order_number, project_storage, comment, datetime) VALUES ('{0}','{1}','{2}','{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}')", lblCatName.Text, vManufacturer, vSeller, vSN, vCurrQuantity, vUnits, vOrder_Number, lblProjectStorage.Text, vComment, dtstring);
-                new MySqlCommand(cmdText, connection1).ExecuteNonQuery();
-                connection1.Close();
-
+                await outcomeLogApi.CreateAsync(new Dictionary<string, object>
+                {
+                    ["cat_name"] = lblCatName.Text,
+                    ["manufacturer"] = vManufacturer,
+                    ["seller"] = vSeller,
+                    ["sn"] = vSN,
+                    ["quantity"] = vCurrQuantity,
+                    ["units"] = vUnits,
+                    ["order_number"] = vOrder_Number,
+                    ["project_storage"] = lblProjectStorage.Text,
+                    ["comment"] = vComment,
+                    ["datetime"] = dtstring,
+                });
             }
             catch (Exception ex)
             {

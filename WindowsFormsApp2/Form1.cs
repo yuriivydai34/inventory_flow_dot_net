@@ -36,12 +36,12 @@ namespace InventoryFlow
         string apiKey = "";
         string filePath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "iflow.ini");
         int selected_id;
-        MaterialsApiClient materialsApi;
+        RestTableClient materialsApi;
         public Form1(string user, string role)
         {
             InitializeComponent();
             getdbconnectionline();
-            materialsApi = new MaterialsApiClient(apiBaseUrl, apiKey);
+            materialsApi = new RestTableClient(apiBaseUrl, apiKey, "materials");
             WindowState = FormWindowState.Maximized;
             dataGridView1.AllowUserToAddRows = false;
             dataGridView1.RowHeadersVisible = false;
@@ -116,7 +116,7 @@ namespace InventoryFlow
             try
             {
                 //LogMessage(connectionString);
-                new Income(connectionString).ShowDialog();
+                new Income(apiBaseUrl, apiKey).ShowDialog();
 
             }
             catch (Exception ex)
@@ -244,7 +244,7 @@ namespace InventoryFlow
             string previous_storage = projectStorage;
             string comment = Convert.ToString(selectedRow.Cells["comment"].Value);
 
-            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
+            new Outcome(apiBaseUrl, apiKey, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
         }
 
         private async void button1_Click(object sender, EventArgs e)
@@ -553,7 +553,7 @@ namespace InventoryFlow
             string previous_storage = projectStorage;
             string comment = Convert.ToString(selectedRow.Cells["comment"].Value);
 
-            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
+            new Outcome(apiBaseUrl, apiKey, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
         }
 
         private async void оновитиToolStripMenuItem_Click(object sender, EventArgs e)
