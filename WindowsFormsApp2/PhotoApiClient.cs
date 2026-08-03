@@ -59,12 +59,17 @@ namespace InventoryFlow
             }
         }
 
-        public async Task DownloadAsync(string photoId, string destPath)
+        public async Task<byte[]> DownloadBytesAsync(string photoId)
         {
             var response = await _http.GetAsync(_baseUrl + "/photos/" + Uri.EscapeDataString(photoId));
             if (!response.IsSuccessStatusCode)
                 throw new Exception($"Не вдалося завантажити файл ({(int)response.StatusCode})");
-            var bytes = await response.Content.ReadAsByteArrayAsync();
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+
+        public async Task DownloadAsync(string photoId, string destPath)
+        {
+            var bytes = await DownloadBytesAsync(photoId);
             File.WriteAllBytes(destPath, bytes);
         }
 

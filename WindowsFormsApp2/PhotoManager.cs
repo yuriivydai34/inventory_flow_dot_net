@@ -1,16 +1,22 @@
 using System;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace InventoryFlow
 {
     public class PhotoManager : Form
     {
+        private const int ThumbSize = 110;
+
         private readonly PhotoApiClient _api;
         private readonly string _inventoryNumber;
         private ListView _list;
+        private ImageList _thumbnails;
         private Button _btnAdd;
         private Button _btnOpen;
         private Button _btnSave;
@@ -32,16 +38,21 @@ namespace InventoryFlow
             Height = 420;
             StartPosition = FormStartPosition.CenterParent;
 
+            _thumbnails = new ImageList
+            {
+                ImageSize = new Size(ThumbSize, ThumbSize),
+                ColorDepth = ColorDepth.Depth32Bit,
+            };
+
             _list = new ListView
             {
                 Dock = DockStyle.Fill,
-                View = View.Details,
-                FullRowSelect = true,
+                View = View.LargeIcon,
+                LargeImageList = _thumbnails,
                 MultiSelect = true,
+                ShowItemToolTips = true,
             };
-            _list.Columns.Add("Назва файлу", 300);
-            _list.Columns.Add("Розмір", 100);
-            _list.Columns.Add("Додано", 160);
+            _list.DoubleClick += async (s, e) => await OpenSelectedAsync();
 
             var panel = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.LeftToRight };
             _btnAdd = new Button { Text = "Додати фото..." };
@@ -66,18 +77,37 @@ namespace InventoryFlow
             Controls.Add(panel);
         }
 
-        private async System.Threading.Tasks.Task ReloadAsync()
+        private async Task ReloadAsync()
         {
             try
             {
                 Cursor = Cursors.WaitCursor;
                 var photos = await _api.ListAsync(_inventoryNumber);
+
                 _list.Items.Clear();
+                _thumbnails.Images.Clear();
+
                 foreach (var p in photos)
                 {
-                    var item = new ListViewItem(p.original_name) { Tag = p };
-                    item.SubItems.Add(FormatSize(p.size_bytes));
-                    item.SubItems.Add(p.created_at);
+                    Image thumb;
+                    try
+                    {
+                        var bytes = await _api.DownloadBytesAsync(p.id);
+                        thumb = CreateThumbnail(bytes, ThumbSize);
+                    }
+                    catch
+                    {
+                        // Наприклад HEIC/HEIF — GDI+ не вміє їх декодувати напряму.
+                        thumb = CreatePlaceholder(ThumbSize);
+                    }
+
+                    _thumbnails.Images.Add(p.id, thumb);
+                    var item = new ListViewItem(p.original_name)
+                    {
+                        Tag = p,
+                        ImageKey = p.id,
+                        ToolTipText = $"{p.original_name}\n{FormatSize(p.size_bytes)}\n{p.created_at}",
+                    };
                     _list.Items.Add(item);
                 }
             }
@@ -91,7 +121,7 @@ namespace InventoryFlow
             }
         }
 
-        private async System.Threading.Tasks.Task AddPhotosAsync()
+        private async Task AddPhotosAsync()
         {
             using (var dlg = new OpenFileDialog
             {
@@ -119,7 +149,7 @@ namespace InventoryFlow
             }
         }
 
-        private async System.Threading.Tasks.Task OpenSelectedAsync()
+        private async Task OpenSelectedAsync()
         {
             var photo = SelectedPhoto();
             if (photo == null) return;
@@ -128,7 +158,8 @@ namespace InventoryFlow
             try
             {
                 Cursor = Cursors.WaitCursor;
-                await _api.DownloadAsync(photo.id, tempPath);
+                var bytes = await _api.DownloadBytesAsync(photo.id);
+                File.WriteAllBytes(tempPath, bytes);
                 Process.Start(tempPath);
             }
             catch (Exception ex)
@@ -141,7 +172,7 @@ namespace InventoryFlow
             }
         }
 
-        private async System.Threading.Tasks.Task SaveSelectedAsync()
+        private async Task SaveSelectedAsync()
         {
             var photo = SelectedPhoto();
             if (photo == null) return;
@@ -166,7 +197,7 @@ namespace InventoryFlow
             }
         }
 
-        private async System.Threading.Tasks.Task DeleteSelectedAsync()
+        private async Task DeleteSelectedAsync()
         {
             if (_list.SelectedItems.Count == 0) return;
             if (MessageBox.Show($"Видалити обрані фото ({_list.SelectedItems.Count})?", "Підтвердження",
@@ -196,6 +227,39 @@ namespace InventoryFlow
         {
             if (_list.SelectedItems.Count == 0) return null;
             return (PhotoInfo)_list.SelectedItems[0].Tag;
+        }
+
+        private static Image CreateThumbnail(byte[] bytes, int size)
+        {
+            using (var ms = new MemoryStream(bytes))
+            using (var original = Image.FromStream(ms))
+            {
+                var thumb = new Bitmap(size, size);
+                using (var g = Graphics.FromImage(thumb))
+                {
+                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    g.Clear(Color.WhiteSmoke);
+
+                    float ratio = Math.Min((float)size / original.Width, (float)size / original.Height);
+                    int w = Math.Max(1, (int)(original.Width * ratio));
+                    int h = Math.Max(1, (int)(original.Height * ratio));
+                    g.DrawImage(original, (size - w) / 2, (size - h) / 2, w, h);
+                }
+                return thumb;
+            }
+        }
+
+        private static Image CreatePlaceholder(int size)
+        {
+            var bmp = new Bitmap(size, size);
+            using (var g = Graphics.FromImage(bmp))
+            using (var font = new Font("Segoe UI", 9))
+            {
+                g.Clear(Color.Gainsboro);
+                var textSize = g.MeasureString("IMG", font);
+                g.DrawString("IMG", font, Brushes.DimGray, (size - textSize.Width) / 2, (size - textSize.Height) / 2);
+            }
+            return bmp;
         }
 
         private static string FormatSize(long bytes)
