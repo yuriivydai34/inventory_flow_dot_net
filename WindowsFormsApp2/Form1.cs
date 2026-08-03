@@ -755,7 +755,7 @@ namespace InventoryFlow
     }
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-            new InfoTab(connectionString, selected_id).ShowDialog();
+            new InfoTab(apiBaseUrl, apiKey, selected_id).ShowDialog();
         }
 
         private void button10_Click(object sender, EventArgs e)

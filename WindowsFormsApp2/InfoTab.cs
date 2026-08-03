@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,10 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using MySql.Data.MySqlClient;
 
 namespace InventoryFlow
-{ 
+{
     public partial class InfoTab : Form
     {
 
@@ -38,8 +37,8 @@ namespace InventoryFlow
 
 
         string matid;
-        string connstring;
-        public InfoTab(string connectionstring, int matID)
+        RestTableClient materialsApi;
+        public InfoTab(string apiBaseUrl, string apiKey, int matID)
         {
             InitializeComponent();
             StartPosition = FormStartPosition.CenterScreen;
@@ -47,72 +46,75 @@ namespace InventoryFlow
             MaximizeBox = false;
             MinimizeBox = false;
             matid = Convert.ToString(matID);
-            connstring = connectionstring;
-
-            
-
-
-
-
+            materialsApi = new RestTableClient(apiBaseUrl, apiKey, "materials");
         }
 
-        private void LoadHistory()
+        private void LoadHistory(List<Dictionary<string, object>> materials)
         {
-            string connectionString = connstring;
-            string query = "SELECT cat_name, project_storage, date_moved_in, date_moved_out, date_added FROM materials WHERE inventory_number = '" + inventory_number + "';";
+            var matches = materials.Where(m => string.Equals(m.GetString("inventory_number"), inventory_number, StringComparison.OrdinalIgnoreCase));
 
-            using (MySqlConnection conn2 = new MySqlConnection(connectionString)) 
+            var dt = new DataTable();
+            dt.Columns.Add("cat_name", typeof(object));
+            dt.Columns.Add("project_storage", typeof(object));
+            dt.Columns.Add("date_moved_in", typeof(object));
+            dt.Columns.Add("date_moved_out", typeof(object));
+            dt.Columns.Add("date_added", typeof(object));
+            foreach (var m in matches)
             {
-                try
-                {
-                    conn2.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn2))
-                    {
-                        using (MySqlDataAdapter adapter = new MySqlDataAdapter(cmd))
-                        {
-                            DataTable dt = new DataTable();
-                            adapter.Fill(dt);
-                            dataGridView1.DataSource = dt; 
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error: " + ex.Message);
-                }
-                dataGridView1.AllowUserToAddRows = false;
-                dataGridView1.AllowUserToAddRows = false;
-
-                dataGridView1.RowHeadersVisible = false;
+                var row = dt.NewRow();
+                row["cat_name"] = m.Get("cat_name") ?? (object)DBNull.Value;
+                row["project_storage"] = m.Get("project_storage") ?? (object)DBNull.Value;
+                row["date_moved_in"] = m.Get("date_moved_in") ?? (object)DBNull.Value;
+                row["date_moved_out"] = m.Get("date_moved_out") ?? (object)DBNull.Value;
+                row["date_added"] = m.Get("date_added") ?? (object)DBNull.Value;
+                dt.Rows.Add(row);
             }
+            dataGridView1.DataSource = dt;
+
+            dataGridView1.AllowUserToAddRows = false;
+            dataGridView1.RowHeadersVisible = false;
         }
 
-            private void InfoTab_Load(object sender, EventArgs e)
+        private async void InfoTab_Load(object sender, EventArgs e)
         {
+            List<Dictionary<string, object>> materials;
+            try
+            {
+                materials = await materialsApi.ListAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: " + ex.Message);
+                return;
+            }
 
-
-            MySqlConnection connection = new MySqlConnection(connstring);
+            var material = materials.FirstOrDefault(m => m.GetString("id") == matid);
+            if (material == null)
+            {
+                MessageBox.Show("Позицію не знайдено.");
+                return;
+            }
 
             id = matid;
-            cat_name = getsingleSQLvalue("cat_name");
-            manufacturer = getsingleSQLvalue("manufacturer");
-            seller = getsingleSQLvalue("seller");
-            sn = getsingleSQLvalue("sn");
-            quantity = getsingleSQLvalue("quantity");
-            units = getsingleSQLvalue("units");
-            order_number = getsingleSQLvalue("order_number");
-            project_storage = getsingleSQLvalue("project_storage");
-            comment = getsingleSQLvalue("comment");
-            inventory_number = getsingleSQLvalue("inventory_number");
-            size_width = getsingleSQLvalue("size_width");
-            size_depth = getsingleSQLvalue("size_depth");
-            size_height = getsingleSQLvalue("size_height");
-            date_of_check = getsingleSQLvalue("date_of_check");
-            date_added = getsingleSQLvalue("date_added");
-            date_moved_in = getsingleSQLvalue("date_moved_in");
-            date_moved_out = getsingleSQLvalue("date_moved_out");
-            date_of_maintenance = getsingleSQLvalue("date_of_maintenance");
-            date_end_warranty = getsingleSQLvalue("date_end_warranty");
+            cat_name = material.GetString("cat_name");
+            manufacturer = material.GetString("manufacturer");
+            seller = material.GetString("seller");
+            sn = material.GetString("sn");
+            quantity = material.GetString("quantity");
+            units = material.GetString("units");
+            order_number = material.GetString("order_number");
+            project_storage = material.GetString("project_storage");
+            comment = material.GetString("comment");
+            inventory_number = material.GetString("inventory_number");
+            size_width = material.GetString("size_width");
+            size_depth = material.GetString("size_depth");
+            size_height = material.GetString("size_height");
+            date_of_check = material.GetString("date_of_check");
+            date_added = material.GetString("date_added");
+            date_moved_in = material.GetString("date_moved_in");
+            date_moved_out = material.GetString("date_moved_out");
+            date_of_maintenance = material.GetString("date_of_maintenance");
+            date_end_warranty = material.GetString("date_end_warranty");
 
             tbInfo.Text = "ID: "+ id + Environment.NewLine +
 cat_name + Environment.NewLine +
@@ -133,27 +135,8 @@ manufacturer + Environment.NewLine +
 "Виїзд: " + date_of_maintenance + Environment.NewLine +
 "Дата завершення гарантії: "+date_end_warranty + Environment.NewLine;
 
-            LoadHistory();
+            LoadHistory(materials);
         }
-
-        private string getsingleSQLvalue(string clmn)
-        {
-            object result;
-
-            using (MySqlConnection conn = new MySqlConnection(connstring))
-            {
-                conn.Open();
-                string query = "SELECT "+ clmn+" FROM materials WHERE id = "+matid+";";
-                using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                {
-                    result = cmd.ExecuteScalar();
-
-                }
-            }
-            string val = Convert.ToString(result);
-            return val;
-        }
-
 
         private void button2_Click(object sender, EventArgs e)
         {
