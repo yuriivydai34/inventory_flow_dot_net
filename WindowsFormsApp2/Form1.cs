@@ -9,8 +9,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO.Ports;
 using System.IO;
-using MySql;
-using MySql.Data.MySqlClient;
 using Microsoft.Office.Interop.Excel;
 using System.Drawing.Printing;
 using ZXing;
@@ -38,10 +36,12 @@ namespace InventoryFlow
         string apiKey = "";
         string filePath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "iflow.ini");
         int selected_id;
+        MaterialsApiClient materialsApi;
         public Form1(string user, string role)
         {
             InitializeComponent();
             getdbconnectionline();
+            materialsApi = new MaterialsApiClient(apiBaseUrl, apiKey);
             WindowState = FormWindowState.Maximized;
             dataGridView1.AllowUserToAddRows = false;
             dataGridView1.RowHeadersVisible = false;
@@ -141,34 +141,48 @@ namespace InventoryFlow
             }
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private static readonly string[] GridColumns =
         {
-            loadMainTable();
+            "id", "order_number", "inventory_number", "cat_name", "manufacturer",
+            "seller", "sn", "quantity", "units", "project_storage", "comment", "date_of_check"
+        };
+
+        private static System.Data.DataTable BuildGridTable(IEnumerable<Dictionary<string, object>> rows)
+        {
+            var table = new System.Data.DataTable();
+            foreach (var col in GridColumns)
+                table.Columns.Add(col, typeof(object));
+
+            foreach (var row in rows)
+            {
+                var dataRow = table.NewRow();
+                foreach (var col in GridColumns)
+                    dataRow[col] = (row.TryGetValue(col, out var v) && v != null) ? v : DBNull.Value;
+                table.Rows.Add(dataRow);
+            }
+            return table;
         }
 
-        public void loadMainTable()
+        private static decimal ToDecimalOrZero(object value)
         {
-                MySqlConnection connection = new MySqlConnection(connectionString);
+            if (value == null) return 0m;
+            return decimal.TryParse(Convert.ToString(value), NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : 0m;
+        }
+
+        private async void Form1_Load(object sender, EventArgs e)
+        {
+            await loadMainTable();
+        }
+
+        public async Task loadMainTable()
+        {
                 try
                 {
-                    connection.Open();
-
-                string query = "SELECT id, order_number, inventory_number, cat_name, manufacturer, seller, sn, quantity, units, project_storage, comment, date_of_check FROM materials";
+                var materials = await materialsApi.ListAsync();
                 if (cbShowNull.Checked)
-                {
-                    query += " WHERE quantity > 0";
-                }
-                query += ";";
-                MySqlDataAdapter mySqlDataAdapter = new MySqlDataAdapter(query, connection);
+                    materials = materials.Where(m => ToDecimalOrZero(m.ContainsKey("quantity") ? m["quantity"] : null) > 0).ToList();
 
-
-
-
-                DataSet dataSet1 = new DataSet();
-                    connection.Close();
-                    DataSet dataSet2 = dataSet1;
-                    mySqlDataAdapter.Fill(dataSet2);
-                    dataGridView1.DataSource = dataSet1.Tables[0];
+                dataGridView1.DataSource = BuildGridTable(materials);
                 }
                 catch (Exception ex)
                 {
@@ -207,9 +221,9 @@ namespace InventoryFlow
             HighlightRowsBasedOnDate();
         }
 
-        private void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object sender, EventArgs e)
         {
-            loadMainTable();
+            await loadMainTable();
         }
 
         private void btn_outcome_Click(object sender, EventArgs e)
@@ -218,109 +232,83 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            MySqlConnection connection1 = new MySqlConnection(connectionString);
-            //int quantityselected;
-            string catName = "";
-            string manufacturer = "";
-            string seller = "";
-            string sn = "";
-            string quantity = "";
-            string units = "";
-            string order_number = "";
-            string projectStorage = "";
-            string previous_storage = "";
-            string comment = "";
-            string dtstring = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            string datetime = "";
+            // Всі потрібні поля вже є в рядку гріда (loadMainTable), запит до БД не потрібен.
+            string catName = Convert.ToString(selectedRow.Cells["cat_name"].Value);
+            string manufacturer = Convert.ToString(selectedRow.Cells["manufacturer"].Value);
+            string seller = Convert.ToString(selectedRow.Cells["seller"].Value);
+            string sn = Convert.ToString(selectedRow.Cells["sn"].Value);
+            string quantity = Convert.ToString(selectedRow.Cells["quantity"].Value);
+            string units = Convert.ToString(selectedRow.Cells["units"].Value);
+            string order_number = Convert.ToString(selectedRow.Cells["order_number"].Value);
+            string projectStorage = Convert.ToString(selectedRow.Cells["project_storage"].Value);
+            string previous_storage = projectStorage;
+            string comment = Convert.ToString(selectedRow.Cells["comment"].Value);
 
-            connection1.Open();
-            catName = Convert.ToString(new MySqlCommand(@"SELECT cat_name FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            manufacturer = Convert.ToString(new MySqlCommand(@"SELECT manufacturer FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            seller = Convert.ToString(new MySqlCommand(@"SELECT seller FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            sn = Convert.ToString(new MySqlCommand(@"SELECT sn FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            quantity = Convert.ToString(new MySqlCommand(@"SELECT quantity FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            units = Convert.ToString(new MySqlCommand(@"SELECT units FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            order_number = Convert.ToString(new MySqlCommand(@"SELECT order_number FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            projectStorage = Convert.ToString(new MySqlCommand(@"SELECT project_storage FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            previous_storage = Convert.ToString(new MySqlCommand(@"SELECT project_storage FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            comment = Convert.ToString(new MySqlCommand(@"SELECT comment FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            datetime = dtstring;
-
-
-            connection1.Close();
             new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
-            //int matID, int currentQuantity, string catName, string units, string projectstorage)
-
-
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private async void button1_Click(object sender, EventArgs e)
         {
 
             if (cbxFilter.Text == "Артикул")
             {
-                filter_select("order_number");
+                await filter_select("order_number");
             }
             if (cbxFilter.Text == "Назва")
             {
-                filter_select("cat_name");
+                await filter_select("cat_name");
             }
             if (cbxFilter.Text == "Виробник")
             {
-                filter_select("manufacturer");
+                await filter_select("manufacturer");
             }
             if (cbxFilter.Text == "Постачальник")
             {
-                filter_select("seller");
+                await filter_select("seller");
             }
             if (cbxFilter.Text == "Серійний номер")
             {
-                filter_select("sn");
+                await filter_select("sn");
             }
             if (cbxFilter.Text == "Кількість")
             {
-                filter_select("quantity");
+                await filter_select("quantity");
             }
             if (cbxFilter.Text == "Одиниці вимірювання")
             {
-                filter_select("units");
+                await filter_select("units");
             }
             if (cbxFilter.Text == "Місце / проект")
             {
-                filter_select("project_storage");
+                await filter_select("project_storage");
             }
             if (cbxFilter.Text == "Коментар / теги")
             {
-                filter_select("comment");
+                await filter_select("comment");
             }
 
             if (cbxFilter.Text == "Інвентарний номер")
             {
-                filter_select("inventory_number");
+                await filter_select("inventory_number");
             }
-            
+
         }
 
-        private void filter_select(string field)
+        private async Task filter_select(string field)
         {
-            MySqlConnection connection = new MySqlConnection(connectionString);
             try
             {
-                connection.Open();
+                var materials = await materialsApi.ListAsync();
 
-                string query = @"SELECT id, order_number, inventory_number, cat_name, manufacturer, seller, sn, quantity, units, project_storage, comment, date_of_check FROM materials WHERE " + field + " LIKE '%" + tbFilterField.Text + "%'";
+                string needle = tbFilterField.Text ?? "";
+                materials = materials
+                    .Where(m => (m.ContainsKey(field) ? Convert.ToString(m[field]) : "")
+                        .IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
                 if (cbShowNull.Checked)
-                {
-                    query += " AND quantity > 0";
-                }
-                query += ";";
-                MySqlDataAdapter mySqlDataAdapter = new MySqlDataAdapter(query, connection);
+                    materials = materials.Where(m => ToDecimalOrZero(m.ContainsKey("quantity") ? m["quantity"] : null) > 0).ToList();
 
-                DataSet dataSet1 = new DataSet();
-                connection.Close();
-                DataSet dataSet2 = dataSet1;
-                mySqlDataAdapter.Fill(dataSet2);
-                dataGridView1.DataSource = (object)dataSet1.Tables[0];
+                dataGridView1.DataSource = BuildGridTable(materials);
             }
             catch (Exception ex)
             {
@@ -368,36 +356,18 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            MySqlConnection connection1 = new MySqlConnection(connectionString);
-            //int quantityselected;
-            string catName = "";
-            string manufacturer = "";
-            string seller = "";
-            string sn = "";
-            string quantity = "";
-            string units = "";
-            string order_number = "";
-            string projectStorage = "";
-            string previous_storage = "";
-            string comment = "";
-            string dtstring = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            string datetime = "";
+            // Всі потрібні поля вже є в рядку гріда (loadMainTable), запит до БД не потрібен.
+            string catName = Convert.ToString(selectedRow.Cells["cat_name"].Value);
+            string manufacturer = Convert.ToString(selectedRow.Cells["manufacturer"].Value);
+            string seller = Convert.ToString(selectedRow.Cells["seller"].Value);
+            string sn = Convert.ToString(selectedRow.Cells["sn"].Value);
+            string quantity = Convert.ToString(selectedRow.Cells["quantity"].Value);
+            string units = Convert.ToString(selectedRow.Cells["units"].Value);
+            string order_number = Convert.ToString(selectedRow.Cells["order_number"].Value);
+            string projectStorage = Convert.ToString(selectedRow.Cells["project_storage"].Value);
+            string previous_storage = projectStorage;
+            string comment = Convert.ToString(selectedRow.Cells["comment"].Value);
 
-            connection1.Open();
-            catName = Convert.ToString(new MySqlCommand(@"SELECT cat_name FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            manufacturer = Convert.ToString(new MySqlCommand(@"SELECT manufacturer FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            seller = Convert.ToString(new MySqlCommand(@"SELECT seller FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            sn = Convert.ToString(new MySqlCommand(@"SELECT sn FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            quantity = Convert.ToString(new MySqlCommand(@"SELECT quantity FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            units = Convert.ToString(new MySqlCommand(@"SELECT units FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            order_number = Convert.ToString(new MySqlCommand(@"SELECT order_number FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            projectStorage = Convert.ToString(new MySqlCommand(@"SELECT project_storage FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            previous_storage = Convert.ToString(new MySqlCommand(@"SELECT project_storage FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            comment = Convert.ToString(new MySqlCommand(@"SELECT comment FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            datetime = dtstring;
-
-
-            connection1.Close();
             //new ChangeStorage(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
             //int matID, int currentQuantity, string catName, string units, string projectstorage)
         }
@@ -542,7 +512,7 @@ namespace InventoryFlow
 
 
 
-        private void button5_Click(object sender, EventArgs e)
+        private async void button5_Click(object sender, EventArgs e)
         {
 
             DialogResult result = MessageBox.Show("Do you want to proceed?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
@@ -553,18 +523,15 @@ namespace InventoryFlow
                 DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
                 int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-
-                MySqlConnection connection1 = new MySqlConnection(connectionString);
-                connection1.Open();
-                string cmdText = string.Format(@"DELETE FROM materials WHERE id = '" + cellValue + "' ");
-                new MySqlCommand(cmdText, connection1).ExecuteNonQuery();
-                connection1.Close();
-                loadMainTable();
-
-            }
-            else
-            {
-
+                try
+                {
+                    await materialsApi.DeleteAsync(cellValue);
+                    await loadMainTable();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(Convert.ToString(ex), "Помилка видалення", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -574,72 +541,37 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            MySqlConnection connection1 = new MySqlConnection(connectionString);
-            //int quantityselected;
-            string catName = "";
-            string manufacturer = "";
-            string seller = "";
-            string sn = "";
-            string quantity = "";
-            string units = "";
-            string order_number = "";
-            string projectStorage = "";
-            string previous_storage = "";
-            string comment = "";
-            string dtstring = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            string datetime = "";
+            // Всі потрібні поля вже є в рядку гріда (loadMainTable), запит до БД не потрібен.
+            string catName = Convert.ToString(selectedRow.Cells["cat_name"].Value);
+            string manufacturer = Convert.ToString(selectedRow.Cells["manufacturer"].Value);
+            string seller = Convert.ToString(selectedRow.Cells["seller"].Value);
+            string sn = Convert.ToString(selectedRow.Cells["sn"].Value);
+            string quantity = Convert.ToString(selectedRow.Cells["quantity"].Value);
+            string units = Convert.ToString(selectedRow.Cells["units"].Value);
+            string order_number = Convert.ToString(selectedRow.Cells["order_number"].Value);
+            string projectStorage = Convert.ToString(selectedRow.Cells["project_storage"].Value);
+            string previous_storage = projectStorage;
+            string comment = Convert.ToString(selectedRow.Cells["comment"].Value);
 
-            connection1.Open();
-            catName = Convert.ToString(new MySqlCommand(@"SELECT cat_name FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            manufacturer = Convert.ToString(new MySqlCommand(@"SELECT manufacturer FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            seller = Convert.ToString(new MySqlCommand(@"SELECT seller FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            sn = Convert.ToString(new MySqlCommand(@"SELECT sn FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            quantity = Convert.ToString(new MySqlCommand(@"SELECT quantity FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            units = Convert.ToString(new MySqlCommand(@"SELECT units FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            order_number = Convert.ToString(new MySqlCommand(@"SELECT order_number FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            projectStorage = Convert.ToString(new MySqlCommand(@"SELECT project_storage FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            previous_storage = Convert.ToString(new MySqlCommand(@"SELECT project_storage FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            comment = Convert.ToString(new MySqlCommand(@"SELECT comment FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-            datetime = dtstring;
-
-
-            connection1.Close();
             new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
-            //int matID, int currentQuantity, string catName, string units, string projectstorage)
-
-
-
         }
 
-        private void оновитиToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void оновитиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            loadMainTable();
+            await loadMainTable();
         }
 
-        private string mysqlSelectOneValue(string query)
-        {
-            MySqlConnection connection1 = new MySqlConnection(connectionString);
-            connection1.Open();
-            string result = Convert.ToString(new MySqlCommand(query, connection1).ExecuteScalar());
-            connection1.Close();
-            return result;
-        }
         private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             int cellValue = 0;
             int selectedrowindex = dataGridView1.SelectedCells[0].RowIndex;
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
-            selected_id = cellValue; 
+            selected_id = cellValue;
             try
             {
-                MySqlConnection connection1 = new MySqlConnection(connectionString);
-                connection1.Open();
-                lblCodeValue.Text = Convert.ToString(new MySqlCommand(@"SELECT inventory_number FROM materials WHERE id= '" + cellValue + "';", connection1).ExecuteScalar());
-                connection1.Close();
-
-                // Display the result in the output TextBox
-
+                // Інвентарний номер вже є в рядку гріда (loadMainTable), запит до БД не потрібен.
+                lblCodeValue.Text = Convert.ToString(selectedRow.Cells["inventory_number"].Value);
 
                 string data = lblCodeValue.Text;
                 var barcodeBitmap = GenerateDataMatrixBarcode(data);
@@ -755,40 +687,47 @@ namespace InventoryFlow
                 }
             }
         }
-        private void button8_Click(object sender, EventArgs e)
+        private async void button8_Click(object sender, EventArgs e)
         {
             //new ChangeStorage().ShowDialog();
             int selectedrowindex = dataGridView1.SelectedCells[0].RowIndex;
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            MySqlConnection connection1 = new MySqlConnection(connectionString);
-            //int quantityselected;
+            Dictionary<string, object> material;
+            try
+            {
+                material = await materialsApi.GetAsync(cellValue);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(Convert.ToString(ex), "Помилка завантаження позиції", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
+            string F(string key) => material.TryGetValue(key, out var v) && v != null ? Convert.ToString(v) : "";
 
             string id = Convert.ToString(cellValue);
-            string cat_name = mysqlSelectOneValue(@"SELECT cat_name FROM materials WHERE id= '" + cellValue + "';");
-            string manufacturer = mysqlSelectOneValue(@"SELECT manufacturer FROM materials WHERE id= '" + cellValue + "';");
-            string seller = mysqlSelectOneValue(@"SELECT seller FROM materials WHERE id= '" + cellValue + "';");
-            string sn = mysqlSelectOneValue(@"SELECT sn FROM materials WHERE id= '" + cellValue + "';");
-            string quantity = mysqlSelectOneValue(@"SELECT quantity FROM materials WHERE id= '" + cellValue + "';");
-            string units = mysqlSelectOneValue(@"SELECT units FROM materials WHERE id= '" + cellValue + "';");
-            string order_number = mysqlSelectOneValue(@"SELECT order_number FROM materials WHERE id= '" + cellValue + "';");
-            string project_storage = mysqlSelectOneValue(@"SELECT project_storage FROM materials WHERE id= '" + cellValue + "';");
-            string comment = mysqlSelectOneValue(@"SELECT comment FROM materials WHERE id= '" + cellValue + "';");
-            string inventory_number = mysqlSelectOneValue(@"SELECT inventory_number FROM materials WHERE id= '" + cellValue + "';");
-            string size_width = mysqlSelectOneValue(@"SELECT size_width FROM materials WHERE id= '" + cellValue + "';");
-            string size_depth = mysqlSelectOneValue(@"SELECT size_depth FROM materials WHERE id= '" + cellValue + "';");
-            string size_height = mysqlSelectOneValue(@"SELECT size_height FROM materials WHERE id= '" + cellValue + "';");
-            string date_of_check = mysqlSelectOneValue(@"SELECT DATE_FORMAT(date_of_check, '%Y-%m-%d %H:%i:%s') FROM materials WHERE id= '" + cellValue + "';");
-            string date_added = mysqlSelectOneValue(@"SELECT DATE_FORMAT(date_added, '%Y-%m-%d %H:%i:%s') FROM materials WHERE id= '" + cellValue + "';");
-            string date_moved_in = mysqlSelectOneValue(@"SELECT DATE_FORMAT(date_moved_in, '%Y-%m-%d %H:%i:%s') FROM materials WHERE id= '" + cellValue + "';");
-            string date_moved_out = mysqlSelectOneValue(@"SELECT DATE_FORMAT(date_moved_out, '%Y-%m-%d %H:%i:%s') FROM materials WHERE id= '" + cellValue + "';");
-            string date_of_maintenance = mysqlSelectOneValue(@"SELECT DATE_FORMAT(date_of_maintenance, '%Y-%m-%d %H:%i:%s') FROM materials WHERE id= '" + cellValue + "';");
-            string date_end_warranty = mysqlSelectOneValue(@"SELECT DATE_FORMAT(date_end_warranty, '%Y-%m-%d %H:%i:%s') FROM materials WHERE id= '" + cellValue + "';");
+            string cat_name = F("cat_name");
+            string manufacturer = F("manufacturer");
+            string seller = F("seller");
+            string sn = F("sn");
+            string quantity = F("quantity");
+            string units = F("units");
+            string order_number = F("order_number");
+            string project_storage = F("project_storage");
+            string comment = F("comment");
+            string inventory_number = F("inventory_number");
+            string size_width = F("size_width");
+            string size_depth = F("size_depth");
+            string size_height = F("size_height");
+            string date_of_check = F("date_of_check");
+            string date_added = F("date_added");
+            string date_moved_in = F("date_moved_in");
+            string date_moved_out = F("date_moved_out");
+            string date_of_maintenance = F("date_of_maintenance");
+            string date_end_warranty = F("date_end_warranty");
 
-            connection1.Open();
-            connection1.Close();
             new ChangeStorage(connectionString,
                 id,
                 cat_name,
@@ -859,9 +798,9 @@ namespace InventoryFlow
             }
         }
 
-        private void cbShowNull_CheckedChanged(object sender, EventArgs e)
+        private async void cbShowNull_CheckedChanged(object sender, EventArgs e)
         {
-            loadMainTable();
+            await loadMainTable();
         }
     }
 }

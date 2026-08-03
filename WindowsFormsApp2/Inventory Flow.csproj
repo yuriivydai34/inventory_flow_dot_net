@@ -156,6 +156,7 @@
     <Compile Include="Outcome.Designer.cs">
       <DependentUpon>Outcome.cs</DependentUpon>
     </Compile>
+    <Compile Include="MaterialsApiClient.cs" />
     <Compile Include="PhotoApiClient.cs" />
     <Compile Include="PhotoManager.cs">
       <SubType>Form</SubType>
