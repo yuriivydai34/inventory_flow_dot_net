@@ -34,7 +34,8 @@ namespace InventoryFlow
         private static readonly HttpClient httpClient = new HttpClient();
         string connectionString = "";
         string printServerUrl = "";
-        string photosPath = "";
+        string apiBaseUrl = "";
+        string apiKey = "";
         string filePath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "iflow.ini");
         int selected_id;
         public Form1(string user, string role)
@@ -72,11 +73,16 @@ namespace InventoryFlow
 
                 if (lines.Length > 0) connectionString = lines[0];
                 if (lines.Length > 1) printServerUrl = lines[1];
-                if (lines.Length > 2)
+
+                // Key=value lines (order-independent, added for the photos REST API), e.g.:
+                // ApiBaseUrl=http://78.27.202.210/api
+                // ApiKey=xxxxx
+                foreach (var line in lines)
                 {
-                    photosPath = lines[2];
-                    if (!Path.IsPathRooted(photosPath))
-                        photosPath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), photosPath);
+                    if (line.StartsWith("ApiBaseUrl=", StringComparison.OrdinalIgnoreCase))
+                        apiBaseUrl = line.Substring("ApiBaseUrl=".Length).Trim();
+                    else if (line.StartsWith("ApiKey=", StringComparison.OrdinalIgnoreCase))
+                        apiKey = line.Substring("ApiKey=".Length).Trim();
                 }
             }
         }
@@ -839,29 +845,17 @@ namespace InventoryFlow
 
                 string inventoryNumber = inventoryNumberCell.ToString().Trim();
 
-                // Очищуємо назву папки від недопустимих символів
-                string folderName = inventoryNumber;
-                char[] invalidChars = Path.GetInvalidFileNameChars();
-                foreach (char invalidChar in invalidChars)
+                if (string.IsNullOrEmpty(apiBaseUrl))
                 {
-                    folderName = folderName.Replace(invalidChar, '_');
+                    MessageBox.Show("Не задано ApiBaseUrl у файлі конфігурації (iflow.ini).", "Увага", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
                 }
 
-                // Створюємо шлях до папки
-                string targetFolderPath = Path.Combine(photosPath, folderName);
-
-                // Створюємо цільову папку, якщо вона не існує
-                if (!Directory.Exists(targetFolderPath))
-                {
-                    Directory.CreateDirectory(targetFolderPath);
-                }
-
-                // Відкриваємо папку в провіднику
-                Process.Start("explorer.exe", targetFolderPath);
+                new PhotoManager(apiBaseUrl, apiKey, inventoryNumber).ShowDialog(this);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка при роботі з папкою: {ex.Message}", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Помилка при роботі з фото: {ex.Message}", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

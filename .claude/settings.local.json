@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Skill(run:*)",
+      "PowerShell($msbuild = \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\18\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\"; if \\(Test-Path $msbuild\\) { & $msbuild \"C:\\\\Users\\\\Hi\\\\Documents\\\\Inventory Flow yv_v1_5\\\\InventoryFlow.sln\" /p:Configuration=Debug /t:Build 2>&1 | Select-Object -Last 15 })",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\Hi\\\\Documents\\\\Inventory Flow yv_v1_5\\\\WindowsFormsApp2\\\\bin\\\\Debug\\\\Inventory Flow.exe\")",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\18\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\Hi\\\\Documents\\\\Inventory Flow yv_v1_5\\\\InventoryFlow.sln\" /p:Configuration=Release /t:Build 2>&1)",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\Hi\\\\Documents\\\\Inventory Flow yv_v1_5\\\\WindowsFormsApp2\\\\bin\\\\Release\\\\Inventory Flow.exe\")",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\18\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\Hi\\\\Documents\\\\Inventory Flow yv_v1_5\\\\InventoryFlow.sln\" /p:Configuration=Release /t:Build /nologo /v:minimal 2>&1)",
+      "PowerShell(Stop-Process -Name \"Inventory Flow\" -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
