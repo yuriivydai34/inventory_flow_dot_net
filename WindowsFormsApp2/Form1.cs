@@ -728,7 +728,7 @@ namespace InventoryFlow
             string date_of_maintenance = F("date_of_maintenance");
             string date_end_warranty = F("date_end_warranty");
 
-            new ChangeStorage(connectionString,
+            new ChangeStorage(apiBaseUrl, apiKey,
                 id,
                 cat_name,
                 manufacturer,

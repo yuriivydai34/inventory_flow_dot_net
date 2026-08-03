@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using MySql.Data.MySqlClient;
 using System.Globalization;
 
 namespace InventoryFlow
@@ -15,7 +14,8 @@ namespace InventoryFlow
     public partial class ChangeStorage : Form
     {
 
-        string vconnstring;
+        RestTableClient materialsApi;
+        List<Dictionary<string, object>> allMaterials = new List<Dictionary<string, object>>();
         string vid; //ID
         string vcat_name; //Повна назва
         string vmanufacturer; //Виробник
@@ -41,7 +41,8 @@ namespace InventoryFlow
 
         public ChangeStorage
             (
-            string connstrng,
+            string apiBaseUrl,
+            string apiKey,
             string id, //ID
         string cat_name, //Повна назва
         string manufacturer, //Виробник
@@ -73,7 +74,7 @@ namespace InventoryFlow
             lblProjectStorage.Text = project_storage;
             lblCatName.Text = cat_name;
 
-            vconnstring = connstrng;
+            materialsApi = new RestTableClient(apiBaseUrl, apiKey, "materials");
             vid = id;
             vcat_name = cat_name;
             vmanufacturer = manufacturer;
@@ -95,7 +96,7 @@ namespace InventoryFlow
             vdate_of_maintenance = date_of_maintenance;
             vdate_end_warranty = date_end_warranty;
 
-            fill_combobox();
+            Load += async (s, e) => await fill_combobox();
         }
 
         private void btnClose_Click(object sender, EventArgs e)
@@ -103,271 +104,151 @@ namespace InventoryFlow
             Close();
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private async void button1_Click(object sender, EventArgs e)
         {
             int quantity_old = Convert.ToInt32(lblCurrentQuantity.Text);
-            string storage_old = vproject_storage;
             int quantity_new = Convert.ToInt32(tbCurrentQuantity.Text);
             //розраховуємо залишкову кільість на попередньому складі
             int quantity_to_update = (quantity_old - quantity_new);
             string storage_new = cbProjectStorage.Text;
 
             //перевіряємо, чи не більше нова кількість за стару
-            if (quantity_new <= quantity_old)
-            {
-                //перевіряємо, чи не дорівнює новий склад старому
-                if (vproject_storage != cbProjectStorage.Text)
-                {
-                    //перевіряємо, чи є вже у project_storage даний cat_name
-                    string positionID = "N";
-                    MySqlConnection conn = new MySqlConnection(vconnstring);
-                    conn.Open();
-                    try
-                    {
-                        positionID = Convert.ToString(new MySqlCommand(@"SELECT IFNULL((SELECT id FROM materials WHERE cat_name = '" + vcat_name + "' AND  project_storage = '" + cbProjectStorage.Text + "'),'00');", conn).ExecuteScalar());
-
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("Дублювання запису позиції. " + Convert.ToString(ex), "Помилка 752", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                    conn.Close();
-
-                    //якщо позиція вже є
-                    if (positionID != "00")
-                    {
-
-                        //перевіряємо, чи є серійний номер у позиції, яку переміщуємо
-                        bool hasSerial = !string.IsNullOrWhiteSpace(vsn);
-
-                        //////якщо true є серійний номер
-                        //if (!string.IsNullOrEmpty(hasserial) && hasserial != "00")
-
-                        ////якщо true є серійний номер
-                        if (hasSerial)
-                        {
-                            //інсерт нового запису
-                            using (MySqlConnection connect7 = new MySqlConnection(vconnstring))
-                            {
-                                string cmdText = @"INSERT INTO materials 
-                        (cat_name, manufacturer, seller, sn, quantity, units, order_number, project_storage, comment, inventory_number, size_width, size_depth, size_height, date_of_check, date_added, date_moved_in, date_moved_out, date_of_maintenance, date_end_warranty) 
-                        VALUES (@cat_name, @manufacturer, @seller, @sn, @quantity, @units, @order_number, @project_storage, @comment, @inventory_number, @size_width, @size_depth, @size_height, @date_of_check, @date_added, @date_moved_in, @date_moved_out, @date_of_maintenance, @date_end_warranty)";
-
-                                using (MySqlCommand cmd = new MySqlCommand(cmdText, connect7))
-                                {
-
-                                    cmd.Parameters.AddWithValue("@cat_name", vcat_name);
-                                    cmd.Parameters.AddWithValue("@manufacturer", vmanufacturer);
-                                    cmd.Parameters.AddWithValue("@seller", vseller);
-                                    cmd.Parameters.AddWithValue("@sn", vsn);
-                                    cmd.Parameters.AddWithValue("@quantity", quantity_new);
-                                    cmd.Parameters.AddWithValue("@units", vunits);
-                                    cmd.Parameters.AddWithValue("@order_number", vorder_number);
-                                    cmd.Parameters.AddWithValue("@project_storage", storage_new);
-                                    cmd.Parameters.AddWithValue("@comment", vcomment);
-                                    cmd.Parameters.AddWithValue("@inventory_number", vinventory_number);
-                                    cmd.Parameters.AddWithValue("@size_width", string.IsNullOrEmpty(vsize_width) ? 0 : Convert.ToInt32(vsize_width));
-                                    cmd.Parameters.AddWithValue("@size_depth", string.IsNullOrEmpty(vsize_depth) ? 0 : Convert.ToInt32(vsize_depth));
-                                    cmd.Parameters.AddWithValue("@size_height", string.IsNullOrEmpty(vsize_height) ? 0 : Convert.ToInt32(vsize_height));
-                                    cmd.Parameters.AddWithValue("@date_of_check", ConvertToDbValue(vdate_of_check));
-                                    cmd.Parameters.AddWithValue("@date_added", ConvertToDbValue(vdate_added));
-                                    cmd.Parameters.AddWithValue("@date_moved_in", DateTime.Now);
-                                    cmd.Parameters.AddWithValue("@date_moved_out", DBNull.Value);
-                                    cmd.Parameters.AddWithValue("@date_of_maintenance", ConvertToDbValue(vdate_of_maintenance));
-                                    cmd.Parameters.AddWithValue("@date_end_warranty", ConvertToDbValue(vdate_end_warranty));
-
-
-                                    connect7.Open();
-                                    cmd.ExecuteNonQuery();
-                                }
-                            }
-
-                            //update кількості попереднього запису
-                            //update кількість в оригінальному записі
-                            MySqlConnection conn4 = new MySqlConnection(vconnstring);
-                            conn4.Open();
-
-                            string cmdupd1 = "UPDATE materials SET quantity = " + quantity_to_update + ", date_moved_out = NOW() WHERE id = " + vid + ";";
-                            new MySqlCommand(cmdupd1, conn4).ExecuteNonQuery();
-                            conn4.Close();
-
-
-                        }
-                        ////якщо false (немає серійного номеру)
-                        else
-                        {
-                            // додаємо до існуючої кількості на складі
-                            //Знаходимо  ід запису на новому складі
-
-                            MySqlConnection conn77 = new MySqlConnection(vconnstring);
-                            conn77.Open();
-                            string positionFound = Convert.ToString(new MySqlCommand(@"SELECT id FROM materials WHERE cat_name = '" + vcat_name + "' AND  project_storage = '" + cbProjectStorage.Text + "';", conn77).ExecuteScalar());
-                            conn77.Close();
-
-                            //select Знаходимо поточну кількість на новому складі
-
-                            MySqlConnection conn88 = new MySqlConnection(vconnstring);
-                            conn88.Open();
-                            string QuantityFound = Convert.ToString(new MySqlCommand(@"SELECT quantity FROM materials WHERE cat_name = '" + vcat_name + "' AND  project_storage = '" + cbProjectStorage.Text + "';", conn88).ExecuteScalar());
-                            conn88.Close();
-
-
-
-                            //update Додаємо кількіть
-                            MySqlConnection conn3 = new MySqlConnection(vconnstring);
-                            conn3.Open();
-
-                            string sqlQuery = "UPDATE materials SET quantity = " + Convert.ToString(Convert.ToInt64(tbCurrentQuantity.Text) + Convert.ToInt64(QuantityFound)) + " WHERE id = " + positionFound + ";";
-                            new MySqlCommand(sqlQuery, conn3).ExecuteNonQuery();
-
-                            conn3.Close();
-                            //update кількість в оригінальному записі
-                            MySqlConnection conn4 = new MySqlConnection(vconnstring);
-                            conn4.Open();
-                            string cmdupd1 = "UPDATE materials SET quantity = " + quantity_to_update + ", date_moved_out = NOW() WHERE id = " + vid + ";";
-                            new MySqlCommand(cmdupd1, conn4).ExecuteNonQuery();
-                            conn4.Close();
-
-
-                        }
-                    }
-
-                    ////якщо проблема із дублюванням знайденого запису
-                    else if (positionID == "N")
-                    {
-                        //MessageBox.Show("Не вдалося оновити позицію на складі", "Log", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-                    }
-
-                    //якщо false (cat_name на новому складі ще немає такої)
-                    else
-                    {
-                        using (MySqlConnection connect7 = new MySqlConnection(vconnstring))
-                        {
-                            string cmdText = @"INSERT INTO materials 
-                        (cat_name, manufacturer, seller, sn, quantity, units, order_number, project_storage, comment, inventory_number, size_width, size_depth, size_height, date_of_check, date_added, date_moved_in, date_moved_out, date_of_maintenance, date_end_warranty) 
-                        VALUES (@cat_name, @manufacturer, @seller, @sn, @quantity, @units, @order_number, @project_storage, @comment, @inventory_number, @size_width, @size_depth, @size_height, @date_of_check, @date_added, @date_moved_in, @date_moved_out, @date_of_maintenance, @date_end_warranty)";
-
-                            using (MySqlCommand cmd = new MySqlCommand(cmdText, connect7))
-                            {
-
-                                cmd.Parameters.AddWithValue("cat_name", vcat_name);
-                                cmd.Parameters.AddWithValue("manufacturer", vmanufacturer);
-                                cmd.Parameters.AddWithValue("seller", vseller);
-                                cmd.Parameters.AddWithValue("sn", vsn);
-                                cmd.Parameters.AddWithValue("quantity", quantity_new);  // ВИПРАВЛЕНО: нова кількість
-                                cmd.Parameters.AddWithValue("units", vunits);
-                                cmd.Parameters.AddWithValue("order_number", vorder_number);
-                                cmd.Parameters.AddWithValue("project_storage", storage_new);  // ВИПРАВЛЕНО: нове місце
-                                cmd.Parameters.AddWithValue("comment", vcomment);
-                                cmd.Parameters.AddWithValue("inventory_number", vinventory_number);
-                                cmd.Parameters.AddWithValue("@size_width", string.IsNullOrEmpty(vsize_width) ? 0 : Convert.ToInt32(vsize_width));
-                                cmd.Parameters.AddWithValue("@size_depth", string.IsNullOrEmpty(vsize_depth) ? 0 : Convert.ToInt32(vsize_depth));
-                                cmd.Parameters.AddWithValue("@size_height", string.IsNullOrEmpty(vsize_height) ? 0 : Convert.ToInt32(vsize_height));
-                                cmd.Parameters.AddWithValue("date_of_check", ConvertToDbValue(vdate_of_check));
-                                cmd.Parameters.AddWithValue("date_added", ConvertToDbValue(vdate_added));  // Оригінальна дата створення
-                                cmd.Parameters.AddWithValue("date_moved_in", DateTime.Now);  // ВИПРАВЛЕНО: щойно прибув на нове місце
-                                cmd.Parameters.AddWithValue("date_moved_out", DBNull.Value);  // ВИПРАВЛЕНО: ще не виїхав
-                                cmd.Parameters.AddWithValue("date_of_maintenance", ConvertToDbValue(vdate_of_maintenance));
-                                cmd.Parameters.AddWithValue("date_end_warranty", ConvertToDbValue(vdate_end_warranty));
-
-
-                                connect7.Open();
-                                cmd.ExecuteNonQuery();
-                            }
-                        }
-
-                        // update кількості на старому складі
-                        MySqlConnection conn4 = new MySqlConnection(vconnstring);
-                        conn4.Open();
-                        string cmdupd1 = "UPDATE materials SET quantity = " + quantity_to_update + ", date_moved_out = NOW() WHERE id = " + vid + ";";
-
-                        new MySqlCommand(cmdupd1, conn4).ExecuteNonQuery();
-                        conn4.Close();
-                    }
-
-                ((Form1)Application.OpenForms["Form1"]).loadMainTable();
-                    Close();
-                }
-
-                else
-                {
-                    MessageBox.Show("Невірно вказано склад", "Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-            else
+            if (quantity_new > quantity_old)
             {
                 MessageBox.Show("Невірно вказано кількість", "Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            //перевіряємо, чи не дорівнює новий склад старому
+            if (vproject_storage == cbProjectStorage.Text)
+            {
+                MessageBox.Show("Невірно вказано склад", "Помилка!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                var materials = await materialsApi.ListAsync();
+
+                //перевіряємо, чи є вже у project_storage даний cat_name
+                var existing = materials.FirstOrDefault(m =>
+                    m.GetString("cat_name") == vcat_name && m.GetString("project_storage") == storage_new);
+
+                bool hasSerial = !string.IsNullOrWhiteSpace(vsn);
+
+                if (existing != null && !hasSerial)
+                {
+                    // додаємо до існуючої кількості на складі (немає серійного номеру)
+                    int existingQty = Convert.ToInt32(ToNumberString(existing.GetString("quantity")));
+                    int existingId = Convert.ToInt32(existing.GetString("id"));
+                    await materialsApi.UpdateAsync(existingId, new Dictionary<string, object>
+                    {
+                        ["quantity"] = quantity_new + existingQty
+                    });
+                }
+                else
+                {
+                    // серійний номер є (окремий запис завжди) АБО на новому складі такої позиції ще немає
+                    await CreateMovedRecordAsync(quantity_new, storage_new);
+                }
+
+                // update кількості на старому складі
+                await materialsApi.UpdateAsync(Convert.ToInt32(vid), new Dictionary<string, object>
+                {
+                    ["quantity"] = quantity_to_update,
+                    ["date_moved_out"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                });
+
+                ((Form1)Application.OpenForms["Form1"]).loadMainTable();
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(Convert.ToString(ex), "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
-        private void fill_combobox()
+
+        private async Task CreateMovedRecordAsync(int quantity_new, string storage_new)
+        {
+            var fields = new Dictionary<string, object>
+            {
+                ["cat_name"] = vcat_name,
+                ["manufacturer"] = vmanufacturer,
+                ["seller"] = vseller,
+                ["sn"] = vsn,
+                ["quantity"] = quantity_new,
+                ["units"] = vunits,
+                ["order_number"] = vorder_number,
+                ["project_storage"] = storage_new,
+                ["comment"] = vcomment,
+                ["inventory_number"] = vinventory_number,
+                ["size_width"] = string.IsNullOrEmpty(vsize_width) ? 0 : Convert.ToInt32(ToNumberString(vsize_width)),
+                ["size_depth"] = string.IsNullOrEmpty(vsize_depth) ? 0 : Convert.ToInt32(ToNumberString(vsize_depth)),
+                ["size_height"] = string.IsNullOrEmpty(vsize_height) ? 0 : Convert.ToInt32(ToNumberString(vsize_height)),
+                ["date_moved_in"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            };
+
+            AddDateIfValid(fields, "date_of_check", vdate_of_check);
+            AddDateIfValid(fields, "date_added", vdate_added);
+            AddDateIfValid(fields, "date_of_maintenance", vdate_of_maintenance);
+            AddDateIfValid(fields, "date_end_warranty", vdate_end_warranty);
+
+            await materialsApi.CreateAsync(fields);
+        }
+
+        // Значення полів приходять із REST API (ISO 8601 чи вже "yyyy-MM-dd HH:mm:ss") — приймаємо обидва формати.
+        private static void AddDateIfValid(Dictionary<string, object> fields, string key, string inputDate)
+        {
+            if (string.IsNullOrWhiteSpace(inputDate)) return;
+            if (DateTime.TryParse(inputDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+                fields[key] = parsed.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        // "7" чи "7.0" з API -> нормалізований рядок для Convert.ToInt32
+        private static string ToNumberString(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "0";
+            return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d.ToString(CultureInfo.InvariantCulture) : value;
+        }
+
+        private async Task fill_combobox()
         {
             try
             {
-                MySqlConnection connection347 = new MySqlConnection(vconnstring);
-                connection347.Open();
-                MySqlDataReader mySqlDataReader5 = new MySqlCommand("SELECT DISTINCT project_storage FROM materials WHERE project_storage LIKE '%" + cbProjectStorage.Text + "%' ;", connection347).ExecuteReader();
-                while (mySqlDataReader5.Read())
-                    cbProjectStorage.Items.Add(mySqlDataReader5.GetString("project_storage"));
-                connection347.Close();
+                allMaterials = await materialsApi.ListAsync();
+                cbProjectStorage.Items.Clear();
+                foreach (var v in DistinctProjectStorages(null))
+                    cbProjectStorage.Items.Add(v);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(Convert.ToString(ex), "Error837", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
+
+        private IEnumerable<string> DistinctProjectStorages(string containing)
+        {
+            var query = allMaterials.Select(m => m.GetString("project_storage")).Where(s => !string.IsNullOrEmpty(s));
+            if (!string.IsNullOrEmpty(containing))
+                query = query.Where(s => s.IndexOf(containing, StringComparison.OrdinalIgnoreCase) >= 0);
+            return query.Distinct().OrderBy(s => s);
+        }
+
         private void btnClose_Click_1(object sender, EventArgs e)
         {
             Close();
-        }
-        object ConvertToDbValue(string inputDate)
-        {
-            if (string.IsNullOrWhiteSpace(inputDate)) return DBNull.Value; // Insert NULL if empty
-
-            DateTime parsedDate;
-            if (DateTime.TryParseExact(inputDate, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedDate))
-            {
-                return parsedDate.ToString("yyyy-MM-dd HH:mm:ss"); // Convert to MySQL format
-            }
-
-            throw new Exception($"Invalid date format: {inputDate}"); // Handle incorrect formats
         }
 
         private void cbProjectStorage_TextUpdate(object sender, EventArgs e)
         {
             cbProjectStorage.Items.Clear();
-            try
-            {
-                using (MySqlConnection connection = new MySqlConnection(vconnstring))
-                {
-                    connection.Open();
-                    string query = "SELECT DISTINCT project_storage FROM materials WHERE project_storage LIKE @filter;";
-                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@filter", "%" + cbProjectStorage.Text + "%");
-                        using (MySqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                cbProjectStorage.Items.Add(reader.GetString("project_storage"));
-                            }
-                        }
-                    }
-                }
+            foreach (var v in DistinctProjectStorages(cbProjectStorage.Text))
+                cbProjectStorage.Items.Add(v);
 
-                // Додаємо поточний текст як варіант (якщо його ще немає)
-                if (!string.IsNullOrEmpty(cbProjectStorage.Text) && !cbProjectStorage.Items.Contains(cbProjectStorage.Text))
-                {
-                    cbProjectStorage.Items.Add(cbProjectStorage.Text);
-                }
+            if (!string.IsNullOrEmpty(cbProjectStorage.Text) && !cbProjectStorage.Items.Contains(cbProjectStorage.Text))
+                cbProjectStorage.Items.Add(cbProjectStorage.Text);
 
-                // Зберігаємо позицію курсора в кінці тексту
-                cbProjectStorage.SelectionStart = cbProjectStorage.Text.Length;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Помилка фільтрації: " + ex.Message, "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+            cbProjectStorage.SelectionStart = cbProjectStorage.Text.Length;
         }
 
         private void cbProjectStorage_Click(object sender, EventArgs e)
