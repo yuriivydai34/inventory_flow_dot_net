@@ -30,7 +30,6 @@ namespace InventoryFlow
 
         private PrintDocument printDocument;
         private static readonly HttpClient httpClient = new HttpClient();
-        string connectionString = "";
         string printServerUrl = "";
         string apiBaseUrl = "";
         string apiKey = "";
@@ -71,7 +70,6 @@ namespace InventoryFlow
                     .Where(l => l.Length > 0 && !l.StartsWith(";"))
                     .ToArray();
 
-                if (lines.Length > 0) connectionString = lines[0];
                 if (lines.Length > 1) printServerUrl = lines[1];
 
                 // Key=value lines (order-independent, added for the photos REST API), e.g.:
@@ -637,7 +635,7 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            new Edit_Position(cellValue, connectionString).ShowDialog();
+            new Edit_Position(cellValue, apiBaseUrl, apiKey).ShowDialog();
         }
         private void button7_Click(object sender, EventArgs e)
         {
@@ -648,7 +646,7 @@ namespace InventoryFlow
         }
         private void button6_Click(object sender, EventArgs e)
         {
-            new Scan(connectionString).ShowDialog();
+            new Scan(apiBaseUrl, apiKey).ShowDialog();
 
         }
         private void HighlightRowsBasedOnDate()
