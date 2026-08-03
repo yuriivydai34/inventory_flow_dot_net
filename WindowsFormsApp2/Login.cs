@@ -4,17 +4,19 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using MySql.Data.MySqlClient;
 using System.IO;
 using System.Security.Cryptography;
+using System.Web.Script.Serialization;
 namespace InventoryFlow
 {
     public partial class Login : Form
     {
-        string connectionstring;
+        string apiBaseUrl;
+        string apiKey;
 
         public Login()
         {
@@ -46,7 +48,13 @@ namespace InventoryFlow
                     .Where(l => l.Length > 0 && !l.StartsWith(";"))
                     .ToArray();
 
-                if (lines.Length > 0) connectionstring = lines[0];
+                foreach (var line in lines)
+                {
+                    if (line.StartsWith("ApiBaseUrl=", StringComparison.OrdinalIgnoreCase))
+                        apiBaseUrl = line.Substring("ApiBaseUrl=".Length).Trim();
+                    else if (line.StartsWith("ApiKey=", StringComparison.OrdinalIgnoreCase))
+                        apiKey = line.Substring("ApiKey=".Length).Trim();
+                }
             }
         }
         private string HashSHA256(string input)
@@ -61,7 +69,7 @@ namespace InventoryFlow
             }
         }
 
-        private void btn_income_Click(object sender, EventArgs e)
+        private async void btn_income_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(tbLogin.Text) || string.IsNullOrWhiteSpace(tbPass.Text))
             {
@@ -69,39 +77,48 @@ namespace InventoryFlow
                 return;
             }
 
+            if (string.IsNullOrEmpty(apiBaseUrl))
+            {
+                MessageBox.Show("Не задано ApiBaseUrl у файлі конфігурації (iflow.ini).", "Помилка підключення", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            btn_income.Enabled = false;
             try
             {
                 string hashedPass = HashSHA256(tbPass.Text);
-                using (MySqlConnection connection = new MySqlConnection(connectionstring))
+                using (var http = new HttpClient())
                 {
-                    connection.Open();
-                    string query = "SELECT name_full, `group` FROM users WHERE login = @login AND pass = @pass";
-                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                    if (!string.IsNullOrEmpty(apiKey))
+                        http.DefaultRequestHeaders.Add("x-api-key", apiKey);
+
+                    var payload = new StringContent(
+                        new JavaScriptSerializer().Serialize(new { login = tbLogin.Text, pass_sha256 = hashedPass }),
+                        Encoding.UTF8, "application/json");
+
+                    var response = await http.PostAsync(apiBaseUrl.TrimEnd('/') + "/auth/login", payload);
+                    var body = await response.Content.ReadAsStringAsync();
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {
-                        cmd.Parameters.AddWithValue("@login", tbLogin.Text);
-                        cmd.Parameters.AddWithValue("@pass", hashedPass);
-                        using (MySqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                string nameFullVal = reader["name_full"].ToString();
-                                string groupVal = reader["group"].ToString();
-                                Hide();
-                                new Form1(nameFullVal, groupVal).ShowDialog();
-                                Close();
-                            }
-                            else
-                            {
-                                tbPass.Text = "";
-                                MessageBox.Show("Невірний логін або пароль", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                            }
-                        }
+                        tbPass.Text = "";
+                        MessageBox.Show("Невірний логін або пароль", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        btn_income.Enabled = true;
+                        return;
                     }
+                    if (!response.IsSuccessStatusCode)
+                        throw new Exception($"{(int)response.StatusCode}: {body}");
+
+                    var result = new JavaScriptSerializer().Deserialize<Dictionary<string, string>>(body);
+                    Hide();
+                    new Form1(result["name_full"], result["group"]).ShowDialog();
+                    Close();
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(Convert.ToString(ex), "Помилка підключення", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                btn_income.Enabled = true;
             }
         }
 
