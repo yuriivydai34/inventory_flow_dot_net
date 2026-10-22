@@ -137,26 +137,32 @@ namespace InventoryFlow
                     if (positionID != "00")
                     {
 
-                        //перевіряємо, чи є серійний номер у cat_name & project_storage
-                        string hasserial;
-                        try
-                        {
-                            MySqlConnection conn1 = new MySqlConnection(vconnstring);
-                            conn1.Open();
-                            hasserial = Convert.ToString(new MySqlCommand(@"SELECT IFNULL((SELECT sn FROM materials WHERE cat_name = '" + vcat_name + "' AND  project_storage = '" + cbProjectStorage.Text + "'),'00');", conn1).ExecuteScalar());
-                            conn1.Close();
+                        ////перевіряємо, чи є серійний номер у cat_name & project_storage
+                        //string hasserial;
+                        //try
+                        //{
+                        //    MySqlConnection conn1 = new MySqlConnection(vconnstring);
+                        //    conn1.Open();
+                        //    hasserial = Convert.ToString(new MySqlCommand(@"SELECT IFNULL((SELECT sn FROM materials WHERE cat_name = '" + vcat_name + "' AND  project_storage = '" + cbProjectStorage.Text + "'),'00');", conn1).ExecuteScalar());
+                        //    conn1.Close();
 
-                            MessageBox.Show(Convert.ToString(hasserial), " hasserial", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
-                        catch (Exception)
-                        {
-                            hasserial = "";
-                        }
+                        //    MessageBox.Show(Convert.ToString(hasserial), " hasserial", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        //}
+                        //catch (Exception)
+                        //{
+                        //    hasserial = "";
+                        //}
 
 
+
+                        //////якщо true є серійний номер
+                        //if (!string.IsNullOrEmpty(hasserial) && hasserial != "00")
+
+                        //перевіряємо, чи є серійний номер у позиції, яку переміщуємо
+                        bool hasSerial = !string.IsNullOrWhiteSpace(vsn);
 
                         ////якщо true є серійний номер
-                        if (!string.IsNullOrEmpty(hasserial) && hasserial != "00")
+                        if (hasSerial)
                         {
                             //інсерт нового запису
                             using (MySqlConnection connect7 = new MySqlConnection(vconnstring))
