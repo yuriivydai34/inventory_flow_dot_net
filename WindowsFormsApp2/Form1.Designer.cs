@@ -34,6 +34,7 @@
             this.btn_outcome = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
             this.btnUsers = new System.Windows.Forms.Button();
+            this.btnActionsLog = new System.Windows.Forms.Button();
             this.cbxFilter = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.tbFilterField = new System.Windows.Forms.TextBox();
@@ -120,6 +121,18 @@
             this.btnUsers.UseVisualStyleBackColor = true;
             this.btnUsers.Visible = false;
             this.btnUsers.Click += new System.EventHandler(this.btnUsers_Click);
+            //
+            // btnActionsLog
+            //
+            this.btnActionsLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnActionsLog.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnActionsLog.Location = new System.Drawing.Point(400, 6);
+            this.btnActionsLog.Name = "btnActionsLog";
+            this.btnActionsLog.Size = new System.Drawing.Size(145, 28);
+            this.btnActionsLog.TabIndex = 61;
+            this.btnActionsLog.Text = "Журнал дій";
+            this.btnActionsLog.UseVisualStyleBackColor = true;
+            this.btnActionsLog.Click += new System.EventHandler(this.btnActionsLog_Click);
             //
             // cbxFilter
             // 
@@ -353,6 +366,7 @@
             this.Controls.Add(this.tbFilterField);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.cbxFilter);
+            this.Controls.Add(this.btnActionsLog);
             this.Controls.Add(this.btnUsers);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btn_outcome);
@@ -397,6 +411,7 @@
         private System.Windows.Forms.Button button10;
         private System.Windows.Forms.CheckBox cbShowNull;
         private System.Windows.Forms.Button btnUsers;
+        private System.Windows.Forms.Button btnActionsLog;
     }
 }
 

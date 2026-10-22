@@ -14,9 +14,11 @@ namespace InventoryFlow
     public partial class Scan : Form
     {
         string connectionstring;
-        public Scan(string con)
+        int userId;
+        public Scan(string con, int currentUserId)
         {
             connectionstring = con;
+            userId = currentUserId;
             InitializeComponent();
         }
 
@@ -106,6 +108,10 @@ namespace InventoryFlow
                         object result = command.ExecuteScalar();
                         if (result != null)
                         {
+                            ActionLogger.Log(connectionstring, userId, "scan",
+                                result.ToString(), null, null, null,
+                                null, null, null, null,
+                                null, tbInventoryNumber.Text);
                             MessageBox.Show(result.ToString(), "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
                         else

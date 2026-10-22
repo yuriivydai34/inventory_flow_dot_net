@@ -143,14 +143,15 @@ namespace InventoryFlow
                         cmd.ExecuteNonQuery();
 
                         string logCmdText = @"INSERT INTO income_log
-                    (user_id, cat_name, manufacturer, seller, sn, quantity, units, order_number,
+                    (user_id, action_type, cat_name, manufacturer, seller, sn, quantity, units, order_number,
                      project_storage, comment, datetime)
                     VALUES
-                    (@user_id, @cat_name, @manufacturer, @seller, @sn, @quantity, @units, @order_number,
+                    (@user_id, @action_type, @cat_name, @manufacturer, @seller, @sn, @quantity, @units, @order_number,
                      @project_storage, @comment, @datetime)";
 
                         MySqlCommand logCmd = new MySqlCommand(logCmdText, connection1);
                         logCmd.Parameters.AddWithValue("@user_id", userId);
+                        logCmd.Parameters.AddWithValue("@action_type", "income");
                         logCmd.Parameters.AddWithValue("@cat_name", cbxName.Text);
                         logCmd.Parameters.AddWithValue("@manufacturer", cbxManufacturer.Text);
                         logCmd.Parameters.AddWithValue("@seller", cbxSeller.Text);

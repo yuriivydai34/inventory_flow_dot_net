@@ -69,6 +69,11 @@ namespace InventoryFlow
             new UsersManagement(connectionString).ShowDialog();
         }
 
+        private void btnActionsLog_Click(object sender, EventArgs e)
+        {
+            new ActionsLog(connectionString).ShowDialog();
+        }
+
         private void getdbconnectionline()
         {
             if (File.Exists(filePath))
@@ -555,6 +560,16 @@ namespace InventoryFlow
                 DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
                 int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
+                ActionLogger.Log(connectionString, currentUserId, "delete",
+                    selectedRow.Cells["cat_name"].Value?.ToString(),
+                    null, null,
+                    selectedRow.Cells["sn"].Value?.ToString(),
+                    selectedRow.Cells["quantity"].Value?.ToString(),
+                    selectedRow.Cells["units"].Value?.ToString(),
+                    selectedRow.Cells["order_number"].Value?.ToString(),
+                    selectedRow.Cells["project_storage"].Value?.ToString(),
+                    null,
+                    selectedRow.Cells["comment"].Value?.ToString());
 
                 MySqlConnection connection1 = new MySqlConnection(connectionString);
                 connection1.Open();
@@ -707,7 +722,7 @@ namespace InventoryFlow
             DataGridViewRow selectedRow = dataGridView1.Rows[selectedrowindex];
             int cellValue = Convert.ToInt32(selectedRow.Cells["ID"].Value);
 
-            new Edit_Position(cellValue, connectionString).ShowDialog();
+            new Edit_Position(cellValue, connectionString, currentUserId).ShowDialog();
         }
         private void button7_Click(object sender, EventArgs e)
         {
@@ -718,7 +733,7 @@ namespace InventoryFlow
         }
         private void button6_Click(object sender, EventArgs e)
         {
-            new Scan(connectionString).ShowDialog();
+            new Scan(connectionString, currentUserId).ShowDialog();
 
         }
         private void HighlightRowsBasedOnDate()
@@ -792,6 +807,7 @@ namespace InventoryFlow
             connection1.Open();
             connection1.Close();
             new ChangeStorage(connectionString,
+                currentUserId,
                 id,
                 cat_name,
                 manufacturer,

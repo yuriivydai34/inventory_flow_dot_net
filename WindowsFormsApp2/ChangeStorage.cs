@@ -36,12 +36,14 @@ namespace InventoryFlow
         string vdate_moved_out; //Дата вивезення
         string vdate_of_maintenance; //Дата сервісного обслуговування
         string vdate_end_warranty;
+        int userId;
 
 
 
         public ChangeStorage
             (
             string connstrng,
+            int currentUserId,
             string id, //ID
         string cat_name, //Повна назва
         string manufacturer, //Виробник
@@ -74,6 +76,7 @@ namespace InventoryFlow
             lblCatName.Text = cat_name;
 
             vconnstring = connstrng;
+            userId = currentUserId;
             vid = id;
             vcat_name = cat_name;
             vmanufacturer = manufacturer;
@@ -303,6 +306,11 @@ namespace InventoryFlow
                         new MySqlCommand(cmdupd1, conn4).ExecuteNonQuery();
                         conn4.Close();
                     }
+
+                ActionLogger.Log(vconnstring, userId, "move",
+                        vcat_name, vmanufacturer, vseller, vsn,
+                        quantity_new, vunits, vorder_number, storage_new,
+                        storage_old, vcomment);
 
                 ((Form1)Application.OpenForms["Form1"]).loadMainTable();
                     Close();

@@ -155,6 +155,13 @@
     <Compile Include="Outcome.Designer.cs">
       <DependentUpon>Outcome.cs</DependentUpon>
     </Compile>
+    <Compile Include="ActionLogger.cs" />
+    <Compile Include="ActionsLog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ActionsLog.Designer.cs">
+      <DependentUpon>ActionsLog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UsersManagement.cs">
@@ -205,6 +212,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="UsersManagement.resx">
       <DependentUpon>UsersManagement.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ActionsLog.resx">
+      <DependentUpon>ActionsLog.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">

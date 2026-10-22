@@ -17,10 +17,12 @@ namespace InventoryFlow
     {
         string mid;
         string connectionString = "";
-        public Edit_Position(int matID, string getconnectionString)
+        int userId;
+        public Edit_Position(int matID, string getconnectionString, int currentUserId)
         {
             InitializeComponent();
             connectionString = getconnectionString;
+            userId = currentUserId;
 
 
             mid = Convert.ToString(matID);
@@ -517,7 +519,10 @@ WHERE id = @id";
                         int rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected > 0)
                         {
-                            //MessageBox.Show("Data updated successfully!");
+                            ActionLogger.Log(connectionString, userId, "edit",
+                                tbName.Text, tbManufacturer.Text, tbSeller.Text, tbSN.Text,
+                                tbQty.Text, tbUnits.Text, tbOrderNum.Text, tbPlace.Text,
+                                null, tbComment.Text);
                         }
                         else
                         {
