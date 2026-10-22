@@ -127,7 +127,7 @@ namespace InventoryFlow
                     conn.Open();
                     try
                     {
-                        positionID = Convert.ToString(new MySqlCommand(@"SELECT IFNULL((SELECT id FROM materials WHERE cat_name = '" + vcat_name + "' AND  project_storage = '" + cbProjectStorage.Text + "'),'00');", conn).ExecuteScalar());
+                        positionID = Convert.ToString(new MySqlCommand(@"SELECT IFNULL((SELECT id FROM materials WHERE cat_name = '" + vcat_name + "' AND  project_storage = '" + cbProjectStorage.Text + "' LIMIT 1),'00');", conn).ExecuteScalar());
 
                     }
                     catch (Exception ex)
