@@ -35,9 +35,11 @@ namespace InventoryFlow
         string connectionString = "";
         string printServerUrl = "";
         string photosPath = "";
+        string userRole = "";
+        int currentUserId;
         string filePath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "iflow.ini");
         int selected_id;
-        public Form1(string user, string role)
+        public Form1(string user, string role, int userId)
         {
             InitializeComponent();
             getdbconnectionline();
@@ -57,8 +59,14 @@ namespace InventoryFlow
             cbxFilter.Items.Add("Інвентарний номер");
             cbxFilter.SelectedIndex = 9;
             lbUser.Text = user;
-            
-            //lbGroup.Text = role;
+            userRole = role;
+            currentUserId = userId;
+            btnUsers.Visible = role != null && role.Trim() == "1";
+        }
+
+        private void btnUsers_Click(object sender, EventArgs e)
+        {
+            new UsersManagement(connectionString).ShowDialog();
         }
 
         private void getdbconnectionline()
@@ -110,7 +118,7 @@ namespace InventoryFlow
             try
             {
                 //LogMessage(connectionString);
-                new Income(connectionString).ShowDialog();
+                new Income(connectionString, currentUserId).ShowDialog();
 
             }
             catch (Exception ex)
@@ -242,7 +250,7 @@ namespace InventoryFlow
 
 
             connection1.Close();
-            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
+            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment, currentUserId).ShowDialog();
             //int matID, int currentQuantity, string catName, string units, string projectstorage)
 
 
@@ -598,7 +606,7 @@ namespace InventoryFlow
 
 
             connection1.Close();
-            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment).ShowDialog();
+            new Outcome(connectionString, cellValue, catName, manufacturer, seller, sn, quantity, units, order_number, projectStorage, previous_storage, comment, currentUserId).ShowDialog();
             //int matID, int currentQuantity, string catName, string units, string projectstorage)
 
 

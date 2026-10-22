@@ -75,7 +75,7 @@ namespace InventoryFlow
                 using (MySqlConnection connection = new MySqlConnection(connectionstring))
                 {
                     connection.Open();
-                    string query = "SELECT name_full, `group` FROM users WHERE login = @login AND pass = @pass";
+                    string query = "SELECT id, name_full, `group` FROM users WHERE login = @login AND pass = @pass";
                     using (MySqlCommand cmd = new MySqlCommand(query, connection))
                     {
                         cmd.Parameters.AddWithValue("@login", tbLogin.Text);
@@ -84,10 +84,11 @@ namespace InventoryFlow
                         {
                             if (reader.Read())
                             {
+                                int userIdVal = Convert.ToInt32(reader["id"]);
                                 string nameFullVal = reader["name_full"].ToString();
                                 string groupVal = reader["group"].ToString();
                                 Hide();
-                                new Form1(nameFullVal, groupVal).ShowDialog();
+                                new Form1(nameFullVal, groupVal, userIdVal).ShowDialog();
                                 Close();
                             }
                             else

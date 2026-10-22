@@ -33,6 +33,7 @@
             this.btn_income = new System.Windows.Forms.Button();
             this.btn_outcome = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
+            this.btnUsers = new System.Windows.Forms.Button();
             this.cbxFilter = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.tbFilterField = new System.Windows.Forms.TextBox();
@@ -106,7 +107,20 @@
             this.btnRefresh.Text = "Оновити";
             this.btnRefresh.UseVisualStyleBackColor = true;
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
-            // 
+            //
+            // btnUsers
+            //
+            this.btnUsers.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnUsers.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnUsers.Location = new System.Drawing.Point(700, 6);
+            this.btnUsers.Name = "btnUsers";
+            this.btnUsers.Size = new System.Drawing.Size(170, 28);
+            this.btnUsers.TabIndex = 60;
+            this.btnUsers.Text = "Користувачі";
+            this.btnUsers.UseVisualStyleBackColor = true;
+            this.btnUsers.Visible = false;
+            this.btnUsers.Click += new System.EventHandler(this.btnUsers_Click);
+            //
             // cbxFilter
             // 
             this.cbxFilter.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -220,7 +234,7 @@
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(782, 9);
+            this.label2.Location = new System.Drawing.Point(782, 38);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(101, 20);
             this.label2.TabIndex = 32;
@@ -231,7 +245,7 @@
             this.lbUser.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.lbUser.AutoSize = true;
             this.lbUser.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lbUser.Location = new System.Drawing.Point(879, 9);
+            this.lbUser.Location = new System.Drawing.Point(879, 38);
             this.lbUser.Name = "lbUser";
             this.lbUser.Size = new System.Drawing.Size(24, 20);
             this.lbUser.TabIndex = 33;
@@ -339,6 +353,7 @@
             this.Controls.Add(this.tbFilterField);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.cbxFilter);
+            this.Controls.Add(this.btnUsers);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btn_outcome);
             this.Controls.Add(this.btn_income);
@@ -381,6 +396,7 @@
         private System.Windows.Forms.Button button9;
         private System.Windows.Forms.Button button10;
         private System.Windows.Forms.CheckBox cbShowNull;
+        private System.Windows.Forms.Button btnUsers;
     }
 }
 

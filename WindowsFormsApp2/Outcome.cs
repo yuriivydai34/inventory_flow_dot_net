@@ -27,10 +27,12 @@ namespace InventoryFlow
 
 
         string mat_ID;
-        public Outcome(string connString, int matID, string catName, string manufacturer, string seller, string sn, string currentQuantity, string units, string order_number, string projectStorage, string previous_storage, string comment)
+        int userId;
+        public Outcome(string connString, int matID, string catName, string manufacturer, string seller, string sn, string currentQuantity, string units, string order_number, string projectStorage, string previous_storage, string comment, int currentUserId)
         {
             InitializeComponent();
             connectionString = connString;
+            userId = currentUserId;
             button1.Enabled = false;
             mat_ID = Convert.ToString(matID);
 
@@ -95,9 +97,23 @@ namespace InventoryFlow
                 MySqlConnection connection1 = new MySqlConnection(connectionString);
                 connection1.Open();
                 //need to be fixed
-                string dtstring = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                string cmdText = string.Format(@"INSERT INTO outcome_log (cat_name, manufacturer, seller, sn, quantity, units, order_number, project_storage, comment, datetime) VALUES ('{0}','{1}','{2}','{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}')", lblCatName.Text, vManufacturer, vSeller, vSN, vCurrQuantity, vUnits, vOrder_Number, lblProjectStorage.Text, vComment, dtstring);
-                new MySqlCommand(cmdText, connection1).ExecuteNonQuery();
+                string cmdText = @"INSERT INTO outcome_log
+                    (user_id, cat_name, manufacturer, seller, sn, quantity, units, order_number, project_storage, comment, datetime)
+                    VALUES
+                    (@user_id, @cat_name, @manufacturer, @seller, @sn, @quantity, @units, @order_number, @project_storage, @comment, @datetime)";
+                MySqlCommand logCmd = new MySqlCommand(cmdText, connection1);
+                logCmd.Parameters.AddWithValue("@user_id", userId);
+                logCmd.Parameters.AddWithValue("@cat_name", lblCatName.Text);
+                logCmd.Parameters.AddWithValue("@manufacturer", vManufacturer);
+                logCmd.Parameters.AddWithValue("@seller", vSeller);
+                logCmd.Parameters.AddWithValue("@sn", vSN);
+                logCmd.Parameters.AddWithValue("@quantity", vCurrQuantity);
+                logCmd.Parameters.AddWithValue("@units", vUnits);
+                logCmd.Parameters.AddWithValue("@order_number", vOrder_Number);
+                logCmd.Parameters.AddWithValue("@project_storage", lblProjectStorage.Text);
+                logCmd.Parameters.AddWithValue("@comment", vComment);
+                logCmd.Parameters.AddWithValue("@datetime", DateTime.Now);
+                logCmd.ExecuteNonQuery();
                 connection1.Close();
 
             }

@@ -23,12 +23,14 @@ namespace InventoryFlow
         private PrintDocument printDocument;
         string CodeGenerated = "_";
         string connectionstring;
+        int userId;
 
 
-        public Income(string con)
+        public Income(string con, int currentUserId)
         {
             InitializeComponent();
             connectionstring = con;
+            userId = currentUserId;
             cbxSerialNumber.Checked = false;
             tbSerialNumber.Enabled = false;
             dateTimePicker1.Enabled = false;
@@ -139,6 +141,27 @@ namespace InventoryFlow
                             checkBox1.Checked ? dateTimePicker1.Value : (object)DBNull.Value);
 
                         cmd.ExecuteNonQuery();
+
+                        string logCmdText = @"INSERT INTO income_log
+                    (user_id, cat_name, manufacturer, seller, sn, quantity, units, order_number,
+                     project_storage, comment, datetime)
+                    VALUES
+                    (@user_id, @cat_name, @manufacturer, @seller, @sn, @quantity, @units, @order_number,
+                     @project_storage, @comment, @datetime)";
+
+                        MySqlCommand logCmd = new MySqlCommand(logCmdText, connection1);
+                        logCmd.Parameters.AddWithValue("@user_id", userId);
+                        logCmd.Parameters.AddWithValue("@cat_name", cbxName.Text);
+                        logCmd.Parameters.AddWithValue("@manufacturer", cbxManufacturer.Text);
+                        logCmd.Parameters.AddWithValue("@seller", cbxSeller.Text);
+                        logCmd.Parameters.AddWithValue("@sn", tbSerialNumber.Text);
+                        logCmd.Parameters.AddWithValue("@quantity", Convert.ToInt32(tbQuantity.Text));
+                        logCmd.Parameters.AddWithValue("@units", cbxUnits.Text);
+                        logCmd.Parameters.AddWithValue("@order_number", cbxOrderNumber.Text);
+                        logCmd.Parameters.AddWithValue("@project_storage", cbxProjectStorage.Text);
+                        logCmd.Parameters.AddWithValue("@comment", tbComment.Text);
+                        logCmd.Parameters.AddWithValue("@datetime", DateTime.Now);
+                        logCmd.ExecuteNonQuery();
                     }
                 }
                 catch (Exception ex)
