@@ -33,7 +33,6 @@ namespace InventoryFlow
         private PrintDocument printDocument;
         private static readonly HttpClient httpClient = new HttpClient();
         string connectionString = "";
-        string printServerUrl = "";
         string photosPath = "";
         string userRole = "";
         int currentUserId;
@@ -84,10 +83,9 @@ namespace InventoryFlow
                     .ToArray();
 
                 if (lines.Length > 0) connectionString = lines[0];
-                if (lines.Length > 1) printServerUrl = lines[1];
-                if (lines.Length > 2)
+                if (lines.Length > 1)
                 {
-                    photosPath = lines[2];
+                    photosPath = lines[1];
                     if (!Path.IsPathRooted(photosPath))
                         photosPath = Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), photosPath);
                 }
